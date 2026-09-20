@@ -267,35 +267,14 @@ class JourneyService {
   Future<Cached<PlanResponse>> plan(Endpoint from, Endpoint to, {bool pin = false}) =>
       _api.get('/api/plan', query: {...from.query('from'), ...to.query('to')}, parse: PlanResponse.fromJson, pin: pin);
 
-  /// An operator's closest stop to a point, or null when it has none within walking range.
-  Future<NearestStop?> _nearestStop(Endpoint at, OperatorRef operator) async {
-    try {
-      final res = await _api.get(
-        '/api/nearest_stops',
-        query: {
-          'lat': at.lat.toStringAsFixed(4),
-          'lon': at.lon.toStringAsFixed(4),
-          'operator': operator.code,
-          'limit': '1',
-        },
-        parse: (j) => ((j['stops'] as List?) ?? const []).cast<Json>().map(NearestStop.fromJson).toList(),
-      );
-      final hit = res.data.firstOrNull;
-      if (hit == null || hit.distanceM > maxTransferWalkM || hit.stop.endpoint == null) return null;
-      return hit;
-    } catch (_) {
-      return null;
-    }
-  }
-
   /// What the other operators run between the same two places.
   ///
   /// A plan between two stop ids only covers that stop's operator, so someone standing at
   /// a Golden Arrow stop would never see the MyCiTi stop across the road or the station
-  /// round the corner. For each other operator this finds its nearest stop to each end and
-  /// plans between those, keeping the walking distance on the option so the card can show
-  /// it. Skipped when both ends are map points, because a plan between two points already
-  /// covers every operator.
+  /// round the corner. Planning between the same two *points* asks the API for everything
+  /// nearby instead, and it returns how far each option's stops are from those points —
+  /// so anything more than a short walk away can be dropped. Skipped when both ends are
+  /// already map points, because that plan covers every operator.
   Future<List<PlanOption>> _nearbyOperatorOptions(
     Endpoint from,
     Endpoint to,
@@ -303,22 +282,23 @@ class JourneyService {
     Set<String> alreadyShown,
   ) async {
     if (!from.isStop && !to.isStop) return const [];
-    final operators = await _ref.operators();
-    final wanted = operators.where((o) => filters.allows(o) && !alreadyShown.contains(o.code)).toList();
-    if (wanted.isEmpty) return const [];
-    final results = await Future.wait(wanted.map((o) => _optionsVia(from, to, o)));
-    return results.expand((x) => x).toList();
-  }
-
-  Future<List<PlanOption>> _optionsVia(Endpoint from, Endpoint to, OperatorRef operator) async {
-    final board = await _nearestStop(from, operator);
-    if (board == null) return const [];
-    final alight = await _nearestStop(to, operator);
-    if (alight == null || alight.stop.id == board.stop.id) return const [];
     try {
-      final res = await plan(board.stop.endpoint!, alight.stop.endpoint!);
-      return res.data.options.map((o) => o.withWalk(boardAwayM: board.distanceM, alightAwayM: alight.distanceM)).toList();
+      final res = await plan(
+        Endpoint.pin(name: from.name, lat: from.lat, lon: from.lon),
+        Endpoint.pin(name: to.name, lat: to.lat, lon: to.lon),
+      );
+      return res.data.options
+          .where(
+            (o) =>
+                !alreadyShown.contains(o.operator.code) &&
+                filters.allows(o.operator) &&
+                (o.boardAwayM ?? 0) <= maxTransferWalkM &&
+                (o.alightAwayM ?? 0) <= maxTransferWalkM,
+          )
+          .toList();
     } catch (_) {
+      // Offline, or the API could not plan from those points: the chosen stops' own
+      // operators are still shown.
       return const [];
     }
   }
@@ -363,7 +343,12 @@ class JourneyService {
     final date = filters.date ?? clock.today;
     // What the chosen stops' own operators run, plus the other operators' services from
     // their nearest stops to the same two places.
-    final nearby = await _nearbyOperatorOptions(from, to, filters, res.data.options.map((o) => o.operator.code).toSet());
+    final nearby = await _nearbyOperatorOptions(
+      from,
+      to,
+      filters,
+      res.data.options.map((o) => o.operator.code).toSet(),
+    );
     final options = [...res.data.options, ...nearby];
     final notes = <String, Map<String, String>>{};
     for (final o in options) {
