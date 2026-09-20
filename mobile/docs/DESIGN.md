@@ -32,6 +32,11 @@ back (see "Data rules"), keep the element and its place in the layout; do not in
 - Operators: Golden Arrow, MyCiTi and Metrorail are all ordinary, fully supported operators.
   MyCiTi is never shown as "coming soon", disabled or greyed out — it appears and behaves like
   the other two in filters, Explore, preferences and results.
+- Results cross operators. A plan between two stop ids only covers that stop's operator, so
+  the same trip is also planned between the two *points*: any other operator's service whose
+  stops are within `JourneyService.maxTransferWalkM` (1200 m) of both places is listed too,
+  with the walk shown on the card ("382 m walk") and spelled out on the trip ("These are
+  MyCiTi stops near your places…"). An operator switched off in Filters is never added.
 - Prices: show the published cash fare (`FareLabel`); if none is published, show nothing in
   the price slot. No MyCiTi fares are published in Commuttr yet, so MyCiTi trips show nothing
   in the price slot; where fares are explained, say MyCiTi is paid with a myconnect card.

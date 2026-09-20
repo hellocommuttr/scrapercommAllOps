@@ -47,6 +47,41 @@ const mycitiJson = {
   'fare': null,
 };
 
+/// The Golden Arrow option between the two stops the rider actually chose.
+const gabsJson = {
+  'timetable_number': '000101',
+  'route_label': 'CAPE TOWN - SEA POINT',
+  'operator_code': 'gabs',
+  'operator_name': 'Golden Arrow Buses',
+  'operator_kind': 'bus',
+  'day_type': 'WEEKDAY',
+  'day_label': 'MONDAYS TO FRIDAYS',
+  'segment_stops': [],
+  'road_path': [],
+  'departures': [
+    {
+      'board_raw': '09:00',
+      'board_approx': false,
+      'board_minutes': 540,
+      'arrive_raw': '09:25',
+      'arrive_approx': false,
+      'arrive_minutes': 565,
+      'schedule_id': 10,
+      'trip_index': 0,
+      'from_seq': 0,
+      'to_seq': 5,
+    },
+  ],
+  'board_approx': false,
+  'alight_approx': false,
+  'board_label': 'CAPE TOWN',
+  'alight_label': 'SEA POINT',
+  'fare': {'cash_cents': 1150, 'basis': 'go_easy'},
+};
+
+/// A weekday, so the fixtures' weekday timetables run whatever day the tests are run.
+const monday = ServiceDate(2026, 9, 21);
+
 void main() {
   group('MyCiTi options', () {
     final option = PlanOption.fromJson(mycitiJson);
@@ -133,13 +168,17 @@ void main() {
     late _FakeApi api;
     late JourneyService journeys;
 
-    // A Golden Arrow stop and a MyCiTi stop 150 m away, at both ends of the trip.
+    // Two Golden Arrow stops. The same trip, planned between those two points instead,
+    // is what turns up the MyCiTi stops round the corner.
     const gabsFrom = Endpoint.stop(id: 7, name: 'CAPE TOWN', lat: -33.9248, lon: 18.4241, operatorCode: 'gabs');
     const gabsTo = Endpoint.stop(id: 101, name: 'SEA POINT', lat: -33.9200, lon: 18.3860, operatorCode: 'gabs');
+    const pinPlan = '/api/plan?from_lat=-33.9248&from_lon=18.4241&to_lat=-33.9200&to_lon=18.3860';
 
-    String nearest(int id, String name, int distance) =>
-        '{"stops":[{"id":$id,"name":"$name","lat":-33.92,"lon":18.42,'
-        '"operator_code":"myciti","operator_kind":"bus","distance_m":$distance}]}';
+    Map<String, Object?> nearby(int boardAway, int alightAway) => {
+      ...mycitiJson,
+      'board_away_m': boardAway,
+      'alight_away_m': alightAway,
+    };
 
     setUp(() async {
       driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -159,36 +198,52 @@ void main() {
 
     tearDown(() => db.close());
 
-    test("MyCiTi's nearby stops are offered too, with the walk", () async {
-      api.bodies['/api/nearest_stops?lat=-33.9248&limit=1&lon=18.4241&operator=myciti'] = nearest(45516, 'Lower Plein', 149);
-      api.bodies['/api/nearest_stops?lat=-33.9200&limit=1&lon=18.3860&operator=myciti'] = nearest(45600, 'Sea Point', 210);
-      api.bodies['/api/plan?from=45516&to=45600'] = jsonEncode({
-        'options': [mycitiJson],
+    test('MyCiTi services near the same two points are offered too, with the walk', () async {
+      api.bodies[pinPlan] = jsonEncode({
+        // The Golden Arrow option comes back here as well: it must not be listed twice.
+        'options': [gabsJson, nearby(149, 210)],
       });
 
-      final o = await journeys.search(gabsFrom, gabsTo, const SearchFilters(departAfter: 0));
-      expect(o.allDay.map((r) => r.operator.code), containsAll(['gabs', 'myciti']));
+      final o = await journeys.search(gabsFrom, gabsTo, const SearchFilters(date: monday, departAfter: 0));
+      expect(o.allDay.map((r) => r.operator.code), ['gabs', 'myciti']);
       final myciti = o.allDay.firstWhere((r) => r.operator == OperatorRef.myciti);
       expect(myciti.walkM, 359);
       expect(myciti.walkLabel, '359 m walk');
     });
 
     test('an operator whose stops are kilometres away is left out', () async {
-      api.bodies['/api/nearest_stops?lat=-33.9248&limit=1&lon=18.4241&operator=myciti'] = nearest(45516, 'Lower Plein', 149);
-      api.bodies['/api/nearest_stops?lat=-33.9200&limit=1&lon=18.3860&operator=myciti'] = nearest(48741, 'Soldier', 9818);
+      api.bodies[pinPlan] = jsonEncode({
+        'options': [nearby(149, 9818)],
+      });
 
-      final o = await journeys.search(gabsFrom, gabsTo, const SearchFilters(departAfter: 0));
+      final o = await journeys.search(gabsFrom, gabsTo, const SearchFilters(date: monday, departAfter: 0));
       expect(o.allDay.every((r) => r.operator == OperatorRef.goldenArrow), isTrue);
     });
 
-    test('an operator switched off in Filters is not fetched at all', () async {
+    test('an operator switched off in Filters is not shown', () async {
+      api.bodies[pinPlan] = jsonEncode({
+        'options': [nearby(149, 210)],
+      });
+
       final o = await journeys.search(
         gabsFrom,
         gabsTo,
-        const SearchFilters(departAfter: 0, excludedOperators: {'myciti', 'metrorail'}),
+        const SearchFilters(date: monday, departAfter: 0, excludedOperators: {'myciti', 'metrorail'}),
       );
       expect(o.allDay.single.operator, OperatorRef.goldenArrow);
-      expect(api.paths.where((p) => p.contains('nearest_stops')), isEmpty);
+      expect(o.hiddenByOperator, 0);
+    });
+
+    test('two map pins are planned once, because that plan already covers every operator', () async {
+      const from = Endpoint.pin(name: 'Long Street', lat: -33.9248, lon: 18.4241);
+      const to = Endpoint.pin(name: 'Main Road', lat: -33.9200, lon: 18.3860);
+      api.bodies[pinPlan] = jsonEncode({
+        'options': [gabsJson, nearby(149, 210)],
+      });
+
+      final o = await journeys.search(from, to, const SearchFilters(date: monday, departAfter: 0));
+      expect(o.allDay.map((r) => r.operator.code), ['gabs', 'myciti']);
+      expect(api.paths.where((p) => p.startsWith('/api/plan')).length, 1);
     });
   });
 

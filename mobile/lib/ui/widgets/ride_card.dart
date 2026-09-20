@@ -106,26 +106,32 @@ class RideCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (cash != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: c.infoSurface, borderRadius: BorderRadius.circular(8)),
-                    child: Text(
-                      formatRands(cash),
-                      style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  )
-                else
-                  const SizedBox(height: 34),
-                const SizedBox(height: 10),
-                Text(
-                  ride.departure.boardApprox ? '$departs (est.)' : departs,
-                  style: context.text.bodySmall?.copyWith(color: accent, fontWeight: FontWeight.w600),
-                ),
-              ],
+            // Fixed, so a long "Departs in 1 h 5 min" cannot squeeze the route and stops
+            // out of shape.
+            SizedBox(
+              width: 88,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (cash != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: c.infoSurface, borderRadius: BorderRadius.circular(8)),
+                      child: Text(
+                        formatRands(cash),
+                        style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 34),
+                  const SizedBox(height: 10),
+                  Text(
+                    ride.departure.boardApprox ? '$departs (est.)' : departs,
+                    textAlign: TextAlign.end,
+                    style: context.text.bodySmall?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
             Icon(Icons.chevron_right, color: c.muted),
           ],

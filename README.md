@@ -5,8 +5,8 @@ Commuttr tells a commuter which bus or train to catch, from where, and at what t
 Golden Arrow publishes its timetables as roughly 1,900 PDF files on
 <https://www.gabs.co.za/Timetable.aspx> — readable by a person, useless to software. This
 project downloads every one of them, reads the departure grids out of them, stores the
-result in a database, and serves it through an API that a React app turns into a trip
-planner.
+result in a database, and serves it through an API that a React app — and a Flutter app for
+phones, in [`mobile/`](mobile/README.md) — turns into a trip planner.
 
 Metrorail's are worse: five PDFs of **scanned images**, with no text layer to read and no
 GTFS feed anywhere. Those go through an OCR pipeline of their own — see
@@ -37,7 +37,7 @@ so a train is planned by the same engine that plans a bus.
 
 ## What's in the box
 
-Four separate pieces. You can run them independently.
+Five separate pieces. You can run them independently.
 
 | Piece | What it is | Lives in |
 | --- | --- | --- |
@@ -45,6 +45,7 @@ Four separate pieces. You can run them independently.
 | **The scraper** | Python. Fetches PDFs from the Golden Arrow site and loads them into the database. Run occasionally, not continuously — it is not part of serving the app. | `src/gabs_scraper/` |
 | **The API** | Java / Spring Boot. Serves the data over HTTP and hosts the web app. | `backend/` |
 | **The web app** | React. What a commuter actually sees — search, map, departure times. | `web/` |
+| **The mobile app** | Flutter, for Android, iOS and web. The same planner in a phone app, working offline from a bundled snapshot of the timetables. Its own README: [`mobile/README.md`](mobile/README.md). | `mobile/` |
 
 ### Which ports things use
 
