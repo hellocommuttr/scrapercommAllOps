@@ -1,0 +1,779 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:stacked/stacked.dart';
+
+import '../../../core/service_day.dart';
+import '../../../data/models/models.dart';
+import '../../../services/journey_service.dart';
+import '../../../services/shell_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/common.dart';
+import '../../widgets/ride_card.dart';
+import 'home_viewmodel.dart';
+
+/// Home, as designed: greeting, "Where we commuting to?", From/To, Depart now / Filter,
+/// the quick-nav row, Recommended routes, Your planner and Explore.
+class HomeView extends StackedView<HomeViewModel> {
+  const HomeView({super.key});
+
+  @override
+  Widget builder(BuildContext context, HomeViewModel viewModel, Widget? child) => Scaffold(
+    body: SafeArea(
+      child: RefreshIndicator(
+        onRefresh: viewModel.canSearch ? viewModel.search : () async {},
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 28),
+              children: [
+                _Header(viewModel),
+                _SearchCard(viewModel),
+                _WhenRow(viewModel),
+                // _QuickNav(viewModel),
+                const OfflineBanner(),
+                ..._recommended(context, viewModel),
+                if (viewModel.plannerCard != null) _PlannerCard(viewModel),
+                _ExploreRow(viewModel),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  // ---------------------------------------------------------------- Recommended routes
+
+  List<Widget> _recommended(BuildContext context, HomeViewModel vm) {
+    final header = const SectionHeader('Recommended routes', padding: EdgeInsets.fromLTRB(20, 20, 8, 10));
+    if (vm.searching) return [header, const LoadingBlock(label: 'Finding routes…')];
+    final problem = vm.problem;
+    if (problem != null) return [header, _ProblemView(vm, problem)];
+    final o = vm.outcome;
+    if (o == null) {
+      return [
+        header,
+        Padding(
+          padding: pagePadding,
+          child: AppCard(
+            child: Row(
+              children: [
+                Icon(Icons.alt_route, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 14),
+                const Expanded(child: Text('Choose where you\'re going to see recommended routes.')),
+              ],
+            ),
+          ),
+        ),
+      ];
+    }
+    final rides = vm.showAll ? o.rides : o.rides.take(3).toList();
+    return [
+      header,
+      Padding(
+        padding: pagePadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ..._banners(vm, o).expand((w) => [w, const SizedBox(height: 8)]),
+            for (final r in rides) ...[
+              RideCard(ride: r, minutesUntil: vm.minutesUntil(r), onTap: () => vm.openRide(r)),
+              const SizedBox(height: 10),
+            ],
+            if (o.rides.length > rides.length)
+              AppCard(
+                onTap: vm.viewMore,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Row(
+                  children: [
+                    const Expanded(child: Text('View more routes', style: TextStyle(fontSize: 16))),
+                    Icon(Icons.chevron_right, color: context.colors.muted),
+                  ],
+                ),
+              ),
+            ..._emptyStates(vm, o),
+            if (o.connections.isNotEmpty) ..._connections(context, vm, o),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _banners(HomeViewModel vm, JourneySearchOutcome o) {
+    const clock = SastClock();
+    final out = <Widget>[];
+    if (o.holidayName != null) {
+      out.add(
+        InfoBanner(
+          tone: BannerTone.warning,
+          icon: Icons.celebration_outlined,
+          message: o.holidayFallback
+              ? '${o.holidayName} — Sunday times shown. Confirm holiday service with the operator.'
+              : '${o.holidayName} — public holiday timetable.',
+        ),
+      );
+    }
+    if (o.fromCache) {
+      out.add(InfoBanner(tone: BannerTone.offline, message: 'Saved ${_ago(o.fetchedAt)}. Pull down to refresh.'));
+    }
+    final last = o.lastBus;
+    if (o.date == clock.today && last != null) {
+      final left = clock.minutesUntil(o.date, last.boardMinutes);
+      if (left > 0 && left <= 60) {
+        out.add(
+          InfoBanner(
+            tone: BannerTone.warning,
+            icon: Icons.nightlight_outlined,
+            message: 'Last ${o.vehicle} today departs at ${last.boardTime}.',
+          ),
+        );
+      }
+    }
+    return out;
+  }
+
+  List<Widget> _emptyStates(HomeViewModel vm, JourneySearchOutcome o) {
+    if (o.rides.isNotEmpty || o.connections.isNotEmpty) return const [];
+    final today = const SastClock().today;
+    if (o.allDay.isNotEmpty) {
+      return [
+        EmptyState(
+          icon: Icons.bedtime_outlined,
+          title: 'No more ${o.vehicles} ${o.date == today ? 'today' : 'that day'}',
+          message: o.allDay.length == 1
+              ? 'The only ${o.vehicle} that day departs at ${o.firstBus!.boardTime}.'
+              : 'The last ${o.vehicle} departed at ${o.lastBus!.boardTime}. The first is at ${o.firstBus!.boardTime}.',
+          actionLabel: o.date == today ? 'See tomorrow\'s ${o.vehicles}' : 'See the whole day',
+          onAction: o.date == today ? vm.seeTomorrow : vm.seeFullDay,
+        ),
+      ];
+    }
+    if (o.otherDayTypes.isNotEmpty) {
+      return [
+        EmptyState(
+          icon: Icons.event_busy_outlined,
+          title: 'No ${o.dayType.label.toLowerCase()} service on this trip',
+          message: '${_cap(o.vehicles)} run on: ${o.otherDayTypes.map((d) => d.label).join(', ')}.',
+          actionLabel: 'Change date',
+          onAction: vm.openFilters,
+        ),
+      ];
+    }
+    return [
+      EmptyState(
+        icon: Icons.wrong_location_outlined,
+        title: o.hiddenByOperator > 0 ? 'Nothing from the transport modes you chose' : 'No route found',
+        message: !o.from.isStop || !o.to.isStop
+            ? 'Try the nearest stop or station instead of an address.'
+            : 'No bus or train connects these two, even with one change.',
+        actionLabel: 'Report a missing route',
+        onAction: vm.reportProblem,
+      ),
+    ];
+  }
+
+  List<Widget> _connections(BuildContext context, HomeViewModel vm, JourneySearchOutcome o) {
+    final c = context.colors;
+    return [
+      for (final con in o.connections.take(6)) ...[
+        AppCard(
+          onTap: () => vm.openConnection(con),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        for (final (i, leg) in con.legs.indexed) ...[
+                          if (i > 0) Icon(Icons.arrow_forward, size: 14, color: c.muted),
+                          RouteBadge(routeNumber: leg.routeNumber, operator: leg.operator),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${titleCase(con.legs.first.fromName)} → ${titleCase(con.legs.last.toName)}',
+                      style: TextStyle(color: c.muted),
+                    ),
+                    Text('1 change at ${con.changeAt.map(titleCase).join(', ')}', style: TextStyle(color: c.muted)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (con.fare?.cashCents != null) FareLabel(con.fare),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Departs ${con.legs.first.boardTime}',
+                    style: TextStyle(color: c.accentText, fontWeight: FontWeight.w600, fontSize: 12),
+                  ),
+                ],
+              ),
+              Icon(Icons.chevron_right, color: c.muted),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
+    ];
+  }
+
+  static String _ago(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inHours < 1) return '${d.inMinutes} min ago';
+    if (d.inDays < 1) return '${d.inHours} h ago';
+    return '${d.inDays} day${d.inDays == 1 ? '' : 's'} ago';
+  }
+
+  @override
+  HomeViewModel viewModelBuilder(BuildContext context) => HomeViewModel();
+
+  @override
+  void onViewModelReady(HomeViewModel viewModel) => viewModel.init();
+}
+
+String _cap(String s) => s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
+/// Round avatar: the profile photo if there is one, else an outline person.
+class ProfileAvatar extends StatelessWidget {
+  const ProfileAvatar({super.key, this.photoBase64, this.size = 52});
+
+  final String? photoBase64;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final bytes = photoBase64 == null ? null : base64Decode(photoBase64!);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: c.card,
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface, width: 1.5),
+        image: bytes == null ? null : DecorationImage(image: MemoryImage(bytes), fit: BoxFit.cover),
+      ),
+      child: bytes == null ? Icon(Icons.person_outline, size: size * 0.55) : null,
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header(this.vm);
+
+  final HomeViewModel vm;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Semantics(
+              button: true,
+              label: 'Profile',
+              child: GestureDetector(
+                onTap: vm.openProfile,
+                child: ProfileAvatar(photoBase64: vm.photoBase64),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(vm.greeting, style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+            ),
+            NotificationBell(onPressed: vm.openNotifications),
+          ],
+        ),
+        const SizedBox(height: 22),
+        Semantics(
+          header: true,
+          child: Text(
+            'Where we commuting to?',
+            style: context.text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('Plan smarter. Move better.', style: TextStyle(color: context.colors.muted, fontSize: 15)),
+        const SizedBox(height: 16),
+      ],
+    ),
+  );
+}
+
+class _SearchCard extends StatelessWidget {
+  const _SearchCard(this.vm);
+
+  final HomeViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    Widget field({
+      required String label,
+      required Endpoint? value,
+      required Widget icon,
+      required VoidCallback onTap,
+      required VoidCallback onClear,
+    }) => Semantics(
+      button: true,
+      label: value == null ? 'Choose $label' : '$label: ${value.displayName}',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 4, 10),
+          child: Row(
+            children: [
+              SizedBox(width: 24, child: icon),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: context.text.bodySmall?.copyWith(color: c.muted)),
+                    const SizedBox(height: 2),
+                    Text(
+                      value?.displayName ?? (label == 'From' ? 'Where are you?' : 'Where to?'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w400,
+                        color: value == null ? c.muted : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (value != null)
+                IconButton(
+                  tooltip: 'Clear $label',
+                  onPressed: onClear,
+                  icon: Icon(Icons.close, size: 20, color: c.muted),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: AppCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  field(
+                    label: 'From',
+                    value: vm.from,
+                    icon: const Icon(Icons.radio_button_unchecked, size: 20),
+                    onTap: vm.pickFrom,
+                    onClear: vm.clearFrom,
+                  ),
+                  const Divider(),
+                  field(
+                    label: 'To',
+                    value: vm.to,
+                    icon: Icon(Icons.location_on, color: Theme.of(context).colorScheme.primary),
+                    onTap: vm.pickTo,
+                    onClear: vm.clearTo,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Semantics(
+            button: true,
+            label: 'Swap From and To',
+            excludeSemantics: true,
+            child: Material(
+              shape: CircleBorder(side: BorderSide(color: c.cardBorder)),
+              color: c.card,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: vm.from == null && vm.to == null ? null : vm.swap,
+                child: const SizedBox(width: 52, height: 52, child: Icon(Icons.swap_vert)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WhenRow extends StatelessWidget {
+  const _WhenRow(this.vm);
+
+  final HomeViewModel vm;
+
+  Future<void> _pick(BuildContext context, {required bool arrive}) async {
+    final now = const SastClock().minutesNow.round();
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: now ~/ 60 % 24, minute: now % 60),
+      helpText: arrive ? 'Arrive by' : 'Depart at',
+      builder: (context, child) =>
+          MediaQuery(data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), child: child!),
+    );
+    if (t == null) return;
+    final m = t.hour * 60 + t.minute;
+    await (arrive ? vm.setWhen(arriveBy: m) : vm.setWhen(departAt: m));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count = vm.filters.activeCount;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Row(
+        children: [
+          PopupMenuButton<String>(
+            tooltip: 'When',
+            onSelected: (v) => switch (v) {
+              'now' => vm.setWhen(),
+              'depart' => _pick(context, arrive: false),
+              'arrive' => _pick(context, arrive: true),
+              _ => null,
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'now', child: Text('Depart now')),
+              PopupMenuItem(value: 'depart', child: Text('Depart at…')),
+              PopupMenuItem(value: 'arrive', child: Text('Arrive by…')),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.schedule, color: onSurface, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    vm.filters.departAfter == null && vm.filters.arriveBy == null && vm.filters.date == null
+                        ? 'Depart now'
+                        : vm.whenLabel,
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                  Icon(Icons.keyboard_arrow_down, color: onSurface),
+                ],
+              ),
+            ),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: vm.openFilters,
+            style: TextButton.styleFrom(foregroundColor: onSurface),
+            child: Row(
+              children: [
+                const Text('Filter', style: TextStyle(fontSize: 15)),
+                const SizedBox(width: 10),
+                Badge(isLabelVisible: count > 0, label: Text('$count'), child: const Icon(Icons.tune)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The five shortcuts under the search, with Search selected.
+class _QuickNav extends StatelessWidget {
+  const _QuickNav(this.vm);
+
+  final HomeViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final accent = Theme.of(context).colorScheme.primary;
+    final items = [
+      (Icons.search, 'Search', null as AppTab?),
+      (Icons.format_list_bulleted, 'Planner', AppTab.planner),
+      (Icons.directions_bus_outlined, 'Live Journey', AppTab.trip),
+      (Icons.explore_outlined, 'Explore', AppTab.explore),
+      (Icons.person_outline, 'Profile', AppTab.profile),
+    ];
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: c.infoSurface,
+        border: Border.symmetric(horizontal: BorderSide(color: c.cardBorder)),
+      ),
+      child: Row(
+        children: [
+          for (final (icon, label, tab) in items)
+            Expanded(
+              child: InkWell(
+                onTap: tab == null ? null : () => vm.goTab(tab),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: tab == null ? accent : Colors.transparent, width: 2)),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(icon, color: tab == null ? accent : null, size: 26),
+                      const SizedBox(height: 6),
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: tab == null ? accent : null),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProblemView extends StatelessWidget {
+  const _ProblemView(this.vm, this.problem);
+
+  final HomeViewModel vm;
+  final SearchProblem problem;
+
+  @override
+  Widget build(BuildContext context) => switch (problem) {
+    SearchProblem.notSavedOffline => EmptyState(
+      icon: Icons.cloud_off_outlined,
+      title: 'This trip isn\'t saved for offline',
+      message: 'Connect once to search it — after that it works without data.',
+      actionLabel: 'Try again',
+      onAction: vm.search,
+    ),
+    SearchProblem.rejected => EmptyState(
+      icon: Icons.error_outline,
+      title: 'We couldn\'t plan that trip',
+      message: 'Try choosing a stop or station from the list for both From and To.',
+      actionLabel: 'Report a problem',
+      onAction: vm.reportProblem,
+    ),
+    SearchProblem.server => EmptyState(
+      icon: Icons.cloud_sync_outlined,
+      title: 'Commuttr is having trouble',
+      message: 'Please try again in a minute.',
+      actionLabel: 'Try again',
+      onAction: vm.search,
+    ),
+  };
+}
+
+/// "Your planner": the next saved journey as two numbered stops and Start journey.
+class _PlannerCard extends StatelessWidget {
+  const _PlannerCard(this.vm);
+
+  final HomeViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final j = vm.plannerCard!;
+    final c = context.colors;
+    final accent = Theme.of(context).colorScheme.primary;
+    String stopLine(Endpoint e) => e.isStop ? 'Stop ID: ${e.id.toString().padLeft(4, '0')}' : 'Map point';
+    Widget stop(String n, String name, String sub) => Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: accent, width: 1.5),
+          ),
+          child: Text(
+            n,
+            style: TextStyle(color: accent, fontWeight: FontWeight.w600),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
+              Text(sub, style: TextStyle(color: c.muted, fontSize: 13)),
+            ],
+          ),
+        ),
+        PopupMenuButton<String>(
+          tooltip: 'More',
+          icon: const Icon(Icons.more_vert),
+          onSelected: (v) => v == 'view' ? vm.openPlanned() : vm.openPlanner(),
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'view', child: Text('View trip')),
+            PopupMenuItem(value: 'planner', child: Text('Open planner')),
+          ],
+        ),
+      ],
+    );
+    return Column(
+      children: [
+        const SectionHeader('Your planner', padding: EdgeInsets.fromLTRB(20, 20, 8, 10)),
+        Padding(
+          padding: pagePadding,
+          child: AppCard(
+            onTap: vm.openPlanned,
+            padding: const EdgeInsets.fromLTRB(16, 14, 4, 16),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: 12,
+                  top: 4,
+                  child: Text('${j.operator.name} ${j.routeNumber}', style: TextStyle(color: accent, fontSize: 13)),
+                ),
+                Column(
+                  children: [
+                    stop('1', j.from.displayName, 'Departs ${j.boardTime}  •  ${stopLine(j.from)}'),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 13),
+                        child: SizedBox(height: 18, child: CustomPaint(painter: _DashPainter(accent))),
+                      ),
+                    ),
+                    stop(
+                      '2',
+                      j.to.displayName,
+                      j.arriveTime == null ? 'Arrival not published' : 'Arrives ${j.arriveTime}',
+                    ),
+                    const SizedBox(height: 14),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: vm.startingJourney ? null : vm.startPlanned,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [Spacer(), Text('Start journey'), Spacer(), Icon(Icons.arrow_forward)],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DashPainter extends CustomPainter {
+  _DashPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = color
+      ..strokeWidth = 1.5;
+    for (double y = 0; y < size.height; y += 5) {
+      canvas.drawLine(Offset(0, y), Offset(0, (y + 3).clamp(0, size.height)), p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashPainter old) => old.color != color;
+}
+
+class _ExploreRow extends StatelessWidget {
+  const _ExploreRow(this.vm);
+
+  final HomeViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final c = context.colors;
+    Widget tile(IconData icon, String title, String sub, VoidCallback onTap) => Expanded(
+      child: AppCard(
+        onTap: onTap,
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: accent, size: 26),
+            const SizedBox(height: 10),
+            Text(title, style: context.text.titleSmall),
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Text(sub, style: TextStyle(color: c.muted, fontSize: 12)),
+                ),
+                Icon(Icons.arrow_forward, size: 16, color: c.muted),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    return Column(
+      children: [
+        SectionHeader(
+          'Explore',
+          actionLabel: 'See all',
+          onAction: vm.openExplore,
+          padding: const EdgeInsets.fromLTRB(20, 20, 8, 10),
+        ),
+        Padding(
+          padding: pagePadding,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                tile(
+                  Icons.directions_bus_outlined,
+                  'Golden Arrow Timetables',
+                  'Plan your trip with up-to-date schedules.',
+                  vm.openExplore,
+                ),
+                const SizedBox(width: 10),
+                tile(
+                  Icons.campaign_outlined,
+                  'Partner updates',
+                  'Discover offers and updates from our mobility partners.',
+                  vm.openExplore,
+                ),
+                const SizedBox(width: 10),
+                tile(
+                  Icons.location_on_outlined,
+                  'Plan better',
+                  'Tips and guides to help you travel smarter.',
+                  vm.openHelp,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

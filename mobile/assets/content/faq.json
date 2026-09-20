@@ -1,0 +1,212 @@
+[
+  {
+    "topic": "Using Commuttr",
+    "q": "What is Commuttr?",
+    "a": "Commuttr is an independent journey planner for Golden Arrow buses, MyCiTi buses and Metrorail trains in Cape Town. It shows scheduled times from each operator's published timetables. We are not Golden Arrow Bus Services, Metrorail (PRASA) or MyCiTi (City of Cape Town), and we are not affiliated with or endorsed by any of them."
+  },
+  {
+    "topic": "Using Commuttr",
+    "q": "How do I find a bus or train?",
+    "a": "On Home, choose where you're starting from and where you're going. You can pick a bus stop or train station, use your location, or (when you're online) search for a place. Commuttr lists the next scheduled buses and trains, and if there's no direct one it offers trips with one change. Use Filter to show only buses or only trains."
+  },
+  {
+    "topic": "Using Commuttr",
+    "q": "Is Commuttr run by Golden Arrow, MyCiTi or Metrorail?",
+    "a": "No. Commuttr is an independent app. We use the operators' published timetables and fares, but we're not affiliated with or endorsed by Golden Arrow Bus Services, Metrorail (PRASA) or MyCiTi (City of Cape Town). For tickets, lost property, complaints and service disruptions, contact the operator: Golden Arrow (gabs.co.za) or MyCiTi (www.myciti.org.za) for buses, Metrorail (metrorail.co.za) for trains."
+  },
+  {
+    "topic": "Using Commuttr",
+    "q": "I lost something on a bus or train. Can you help?",
+    "a": "Lost property is handled by the operator, not Commuttr. For Golden Arrow buses, go to gabs.co.za. For MyCiTi buses, go to www.myciti.org.za. For trains, contact Metrorail through metrorail.co.za."
+  },
+  {
+    "topic": "Using Commuttr",
+    "q": "How do I complain about a bus, train or staff?",
+    "a": "Complaints about buses, trains, drivers, staff or service go to the operator: Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za). You'll find their contact details on their sites. We can't pass complaints on for you. If the problem is with the Commuttr app, please report it to us."
+  },
+  {
+    "topic": "Using Commuttr",
+    "q": "Does Commuttr work without data?",
+    "a": "Mostly, yes. Stops, stations, routes and any search you've done before are saved on your phone. Your planner and favourites work offline too. A new search you've never done before, place searches and maps need a connection."
+  },
+  {
+    "topic": "Using Commuttr",
+    "q": "How much data does Commuttr use?",
+    "a": "Very little. Timetables come with the app, and searches are small. Maps use the most data. To save data, turn off \"Show maps\" in Preferences."
+  },
+  {
+    "topic": "Using Commuttr",
+    "q": "Is MyCiTi included?",
+    "a": "Yes. Commuttr has MyCiTi's 47 routes, such as T01, D05 and 101, with weekday, Saturday and Sunday service. Stop positions come from OpenStreetMap. A few MyCiTi stops don't have a position yet, so you can't use them as a start or end point. MyCiTi fares aren't shown yet. You pay for MyCiTi with a myconnect card — see www.myciti.org.za."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "Which trains are included?",
+    "a": "Metrorail's Cape Town trains on the Central, Northern, Southern, Cape Flats and Monte Vista lines, from Metrorail's published timetables. Train times are shown by line — the line name is used where a bus would show a route name."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "How do I save a journey to my planner?",
+    "a": "Open a trip from your search results and add it to your planner. Your planner is saved on this device, works offline, and can remind you when it's time to leave."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "Why can't I see where my bus or train is right now?",
+    "a": "None of the operators publishes a feed of vehicle positions that we can use, so Commuttr can't track buses or trains. Every time you see is a scheduled time from the published timetable, and trip progress on Live Journey is worked out from the timetable and the clock. Buses and trains can be early, late or cancelled, so be at your stop or station 5–10 minutes early."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "What does \"Scheduled\" mean?",
+    "a": "It's the time in the operator's published timetable for that stop or station. It's what the bus or train is planned to do, not a prediction of where it is today."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "What does \"approx.\" or \"est.\" mean?",
+    "a": "Some timetables only print times at some stops. For stops in between we estimate the time from the stops either side, and label it. Treat it as a rough guide and arrive early."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "What does \"time not published\" or \"via\" mean?",
+    "a": "The bus passes this stop, but the timetable doesn't give a time for it and we can't estimate one safely. Check the official timetable or allow extra time."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "Why are there no Sunday trains?",
+    "a": "Metrorail's published timetables in Commuttr have weekday and Saturday service only, so Commuttr shows no trains on Sundays. Service on Sundays and public holidays can differ, so please confirm with Metrorail at metrorail.co.za."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "A bus stop and a train station have the same name. Which is which?",
+    "a": "Train stations are labelled \"station\" (for example \"Bellville station\"), so you can tell them apart from a bus stop with the same name. They may be a short walk apart, so check which one your trip starts from."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "What do notes like \"Fridays only\" mean?",
+    "a": "Some Golden Arrow buses only run on certain days. Their timetables mark these with footnotes, and we show the note in full. Commuttr hides buses that don't run on the day you're travelling, so you won't see a Friday-only bus on a Monday. Metrorail's timetables don't have footnotes like these."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "What happens on public holidays?",
+    "a": "Commuttr works out public holidays for you. If a bus route has a public holiday timetable, we use it. If it doesn't, we show the Sunday timetable and say so. Holiday service can change, so please confirm with Golden Arrow at gabs.co.za, MyCiTi at www.myciti.org.za or Metrorail at metrorail.co.za."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "The bus or train didn't come. What now?",
+    "a": "We're sorry. Commuttr only knows the published timetable, so we can't see delays or cancellations. Check gabs.co.za or www.myciti.org.za (buses) or metrorail.co.za (trains) for service updates, and look at the next scheduled departure. If you think the timetable time itself is wrong, please report it so we can check."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "How do I report a wrong time or fare?",
+    "a": "Open the trip and tap \"Report a problem\", or go to Help & Support → Report an issue. The trip details are filled in for you. You'll see exactly what will be sent before your email app opens. Reports go to Commuttr, not to Golden Arrow, MyCiTi or Metrorail."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "Where can I see the official timetable?",
+    "a": "For Golden Arrow buses, trip details and the timetable screen show the date the timetable is valid from and a link to Golden Arrow's official PDF on gabs.co.za. MyCiTi and Metrorail timetables in Commuttr don't come with a PDF link or a valid-from date. See www.myciti.org.za for MyCiTi's own timetables, and metrorail.co.za for Metrorail's."
+  },
+  {
+    "topic": "Routes & Planning",
+    "q": "How do I get the latest timetables?",
+    "a": "Commuttr checks for updated stops and routes about once a day when you're online. You can also go to Profile → Offline & data → Refresh timetable data. This keeps your planner and favourites."
+  },
+  {
+    "topic": "Payments & Wallet",
+    "q": "Can I buy tickets or pay in Commuttr?",
+    "a": "No. Commuttr is free and doesn't sell tickets, cards or passes. It has no wallet, takes no payments and holds no money for you. You pay the operator directly."
+  },
+  {
+    "topic": "Payments & Wallet",
+    "q": "Can I top up or get a refund in Commuttr?",
+    "a": "No — there's nothing to top up and nothing to refund, because Commuttr never takes your money. For refunds on a ticket or card, contact the operator you bought it from: Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za)."
+  },
+  {
+    "topic": "Payments & Wallet",
+    "q": "Where can I see fares?",
+    "a": "Where the operator publishes a cash fare for your journey, Commuttr shows it with the trip. For trains that is Metrorail's single ticket price, with the return, weekly and monthly prices under \"About this fare\". For buses it is Golden Arrow's published cash fare. We only ever show a cash fare as the price — Golden Arrow card (Gold Card) prices are never shown as the price. MyCiTi fares aren't shown yet — MyCiTi is paid with a myconnect card (see www.myciti.org.za)."
+  },
+  {
+    "topic": "Payments & Wallet",
+    "q": "Why is there no price for my bus?",
+    "a": "Golden Arrow publishes cash fares for only about 21 routes, so many bus trips show no price. Rather than guess, we show nothing. For the fare on your route, ask the driver or check gabs.co.za. MyCiTi fares aren't in Commuttr yet — see www.myciti.org.za."
+  },
+  {
+    "topic": "Payments & Wallet",
+    "q": "Is the fare shown what I'll pay?",
+    "a": "Not necessarily. Fares are the last published figures, and we show the date they took effect. They may have changed since then, and some depend on the time of day. Treat them as a guide, and check with the operator if the exact amount matters: Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za)."
+  },
+  {
+    "topic": "Payments & Wallet",
+    "q": "Where do I buy a ticket?",
+    "a": "Metrorail tickets — single, return, weekly and monthly — are bought at the station before you board. For Golden Arrow bus tickets and cards, see gabs.co.za for where and how to buy them. MyCiTi is paid with a myconnect card — see www.myciti.org.za. Commuttr doesn't sell tickets for trains or buses."
+  },
+  {
+    "topic": "Account & Profile",
+    "q": "Do I need an account?",
+    "a": "No. There's no sign-up, no login and no password. Everything you save stays on this device."
+  },
+  {
+    "topic": "Account & Profile",
+    "q": "Where are my profile details kept?",
+    "a": "On this device only. Your name, photo, phone number, email and home area, plus your planner, favourites, recent searches and settings, are never uploaded. If you delete the app or clear your browser data, they're gone, so export a backup if you want to keep them."
+  },
+  {
+    "topic": "Account & Profile",
+    "q": "How do I back up or move to a new phone?",
+    "a": "On your old phone go to Profile → Offline & data → Export backup and keep the file somewhere safe (for example, email it to yourself). On the new phone, install Commuttr and use Import backup. There's no account, so this is the only way to move your planner and favourites."
+  },
+  {
+    "topic": "Account & Profile",
+    "q": "What does Commuttr send over the internet?",
+    "a": "When you search, the stops or map points you chose go to the Commuttr server to work out your trip. Place-name searches are passed on to OpenStreetMap to find the place, and maps are loaded from OpenStreetMap. Your location is only used when you tap \"Use my location\" or \"Nearby stops\". There are no ads and no trackers. See the Privacy Policy for details."
+  },
+  {
+    "topic": "Account & Profile",
+    "q": "How do I delete my data?",
+    "a": "Go to Profile → Offline & data → Erase everything. This removes everything Commuttr has saved on this device. For our server logs, email us — see the Privacy Policy."
+  },
+  {
+    "topic": "Alerts & Updates",
+    "q": "How do reminders work?",
+    "a": "Commuttr can remind you when it's time to leave for a planned bus or train, and when your stop is next during a trip. Reminders are set on your phone, so they work with the app closed and without data. They're based on scheduled times, not the actual position of the bus or train."
+  },
+  {
+    "topic": "Alerts & Updates",
+    "q": "Why am I not getting reminders?",
+    "a": "Reminders need permission to show notifications. Check Commuttr's notification settings on your phone, and make sure battery saver isn't blocking it. Reminders don't work on the web version — use the Android or iPhone app for those."
+  },
+  {
+    "topic": "Alerts & Updates",
+    "q": "Can I change how early I'm reminded?",
+    "a": "Yes. Go to Profile → Preferences and set the reminder time."
+  },
+  {
+    "topic": "Alerts & Updates",
+    "q": "What are the notifications in the app?",
+    "a": "The bell shows messages from Commuttr itself — for example when your timetable data has been refreshed. They're kept on this device. Commuttr doesn't receive alerts from Golden Arrow, MyCiTi or Metrorail."
+  },
+  {
+    "topic": "Alerts & Updates",
+    "q": "Where can I find service disruptions?",
+    "a": "Golden Arrow announces bus disruptions on gabs.co.za, MyCiTi on www.myciti.org.za, and Metrorail announces train disruptions on metrorail.co.za. Commuttr doesn't receive disruption alerts, so check there before you travel."
+  },
+  {
+    "topic": "Accessibility",
+    "q": "Can I make the text bigger or bolder?",
+    "a": "Yes. Go to Profile → Accessibility to turn on larger text or bold text. Commuttr also follows your phone's own text size and bold text settings."
+  },
+  {
+    "topic": "Accessibility",
+    "q": "Can I turn off animations?",
+    "a": "Yes. Turn on Reduce motion in Profile → Accessibility. Commuttr also respects your phone's own setting to remove animations."
+  },
+  {
+    "topic": "Accessibility",
+    "q": "Does Commuttr work with a screen reader?",
+    "a": "Commuttr is built to work with TalkBack and VoiceOver: buttons, tabs and routes are labelled. If something isn't read out properly, please report it so we can fix it."
+  },
+  {
+    "topic": "Accessibility",
+    "q": "Which buses and trains are wheelchair accessible?",
+    "a": "The operators don't publish which services are wheelchair accessible in a form Commuttr can use, so Commuttr can't show it yet — the filter says \"Not published by the operators yet\". Please ask Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za) directly before you travel."
+  }
+]

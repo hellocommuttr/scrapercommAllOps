@@ -1,0 +1,23 @@
+[
+  {
+    "headline": "Ride more.\nStress less.",
+    "body": "Golden Arrow and Metrorail timetables in one app — even offline.",
+    "cta": "Learn more",
+    "url": "https://www.gabs.co.za",
+    "icon": "bus"
+  },
+  {
+    "headline": "Going by train?\nCheck Metrorail.",
+    "body": "Service notices, tickets and fares come straight from Metrorail's own site.",
+    "cta": "Learn more",
+    "url": "https://www.metrorail.co.za",
+    "icon": "train"
+  },
+  {
+    "headline": "Plan better.\nTravel smarter.",
+    "body": "Tips and guides to help you get the most out of Commuttr.",
+    "cta": "Learn more",
+    "url": "app://help",
+    "icon": "tips"
+  }
+]
