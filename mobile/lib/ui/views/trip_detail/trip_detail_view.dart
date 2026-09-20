@@ -180,6 +180,16 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
                 ],
               ),
             ],
+            if ((vm.boardAwayM ?? 0) >= 50 || (vm.alightAwayM ?? 0) >= 50) ...[
+              const SizedBox(height: 8),
+              InfoBanner(
+                icon: Icons.directions_walk,
+                message:
+                    'These are ${vm.operator.name} stops near your places: '
+                    '${vm.boardAwayM ?? 0} m to ${titleCase(vm.boardLabel)}'
+                    ' and ${vm.alightAwayM ?? 0} m from ${titleCase(vm.alightLabel)}.',
+              ),
+            ],
             const SectionHeader('Fare', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),
             _FareCard(fare: vm.fare, operator: vm.operator),
             const SectionHeader('About this timetable', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),

@@ -67,6 +67,13 @@ class TripDetailViewModel extends BaseViewModel {
   /// The published fare: in full for a search result, cash price only for a planner item.
   Fare? fare;
 
+  /// How far the boarding and alighting stops are from the places the rider asked for,
+  /// with the stops' own names — set when this ride is another operator's service nearby.
+  int? boardAwayM;
+  int? alightAwayM;
+  String boardLabel = '';
+  String alightLabel = '';
+
   bool get isPlanned => planned != null;
   bool get remindersSupported => _reminders.isSupported;
   int get arriveEarly => _settings.arriveEarlyMinutes;
@@ -111,6 +118,10 @@ class TripDetailViewModel extends BaseViewModel {
       roadPath = r.option.roadPath;
       operator = r.operator;
       fare = r.fare;
+      boardAwayM = r.option.boardAwayM;
+      alightAwayM = r.option.alightAwayM;
+      boardLabel = r.option.boardLabel;
+      alightLabel = r.option.alightLabel;
       headerReady = true;
       await _findPlanned();
     } else {

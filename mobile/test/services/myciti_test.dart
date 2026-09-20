@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:commuttr/core/service_day.dart';
 import 'package:commuttr/data/api/commuttr_api.dart';
 import 'package:commuttr/data/db/app_database.dart';
 import 'package:commuttr/data/models/models.dart';
+import 'package:commuttr/services/cached_api_service.dart';
+import 'package:commuttr/services/connectivity_service.dart';
 import 'package:commuttr/services/journey_service.dart';
 import 'package:commuttr/services/reference_data_service.dart';
 import 'package:commuttr/services/settings_service.dart';
@@ -125,6 +128,70 @@ void main() {
     });
   });
 
+  group('other operators near the same places', () {
+    late AppDatabase db;
+    late _FakeApi api;
+    late JourneyService journeys;
+
+    // A Golden Arrow stop and a MyCiTi stop 150 m away, at both ends of the trip.
+    const gabsFrom = Endpoint.stop(id: 7, name: 'CAPE TOWN', lat: -33.9248, lon: 18.4241, operatorCode: 'gabs');
+    const gabsTo = Endpoint.stop(id: 101, name: 'SEA POINT', lat: -33.9200, lon: 18.3860, operatorCode: 'gabs');
+
+    String nearest(int id, String name, int distance) =>
+        '{"stops":[{"id":$id,"name":"$name","lat":-33.92,"lon":18.42,'
+        '"operator_code":"myciti","operator_kind":"bus","distance_m":$distance}]}';
+
+    setUp(() async {
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      db = AppDatabase(NativeDatabase.memory());
+      final settings = SettingsService(db: db);
+      await settings.load();
+      api = _FakeApi();
+      final cached = CachedApiService(db: db, api: api, connectivity: ConnectivityService(), settings: settings);
+      final reference = ReferenceDataService(db: db, api: api, settings: settings);
+      await reference.seedIfNeeded(assetJson: File('assets/seed/seed.json').readAsStringSync());
+      journeys = JourneyService(api: cached, reference: reference);
+      // The stops the rider chose: one Golden Arrow option.
+      api.bodies['/api/plan?from=7&to=101'] = jsonEncode({
+        'options': [gabsJson],
+      });
+    });
+
+    tearDown(() => db.close());
+
+    test("MyCiTi's nearby stops are offered too, with the walk", () async {
+      api.bodies['/api/nearest_stops?lat=-33.9248&limit=1&lon=18.4241&operator=myciti'] = nearest(45516, 'Lower Plein', 149);
+      api.bodies['/api/nearest_stops?lat=-33.9200&limit=1&lon=18.3860&operator=myciti'] = nearest(45600, 'Sea Point', 210);
+      api.bodies['/api/plan?from=45516&to=45600'] = jsonEncode({
+        'options': [mycitiJson],
+      });
+
+      final o = await journeys.search(gabsFrom, gabsTo, const SearchFilters(departAfter: 0));
+      expect(o.allDay.map((r) => r.operator.code), containsAll(['gabs', 'myciti']));
+      final myciti = o.allDay.firstWhere((r) => r.operator == OperatorRef.myciti);
+      expect(myciti.walkM, 359);
+      expect(myciti.walkLabel, '359 m walk');
+    });
+
+    test('an operator whose stops are kilometres away is left out', () async {
+      api.bodies['/api/nearest_stops?lat=-33.9248&limit=1&lon=18.4241&operator=myciti'] = nearest(45516, 'Lower Plein', 149);
+      api.bodies['/api/nearest_stops?lat=-33.9200&limit=1&lon=18.3860&operator=myciti'] = nearest(48741, 'Soldier', 9818);
+
+      final o = await journeys.search(gabsFrom, gabsTo, const SearchFilters(departAfter: 0));
+      expect(o.allDay.every((r) => r.operator == OperatorRef.goldenArrow), isTrue);
+    });
+
+    test('an operator switched off in Filters is not fetched at all', () async {
+      final o = await journeys.search(
+        gabsFrom,
+        gabsTo,
+        const SearchFilters(departAfter: 0, excludedOperators: {'myciti', 'metrorail'}),
+      );
+      expect(o.allDay.single.operator, OperatorRef.goldenArrow);
+      expect(api.paths.where((p) => p.contains('nearest_stops')), isEmpty);
+    });
+  });
+
   group('bundled seed', () {
     late AppDatabase db;
     late ReferenceDataService reference;
@@ -158,6 +225,22 @@ void main() {
       expect(await reference.searchRoutes(''), isNotEmpty);
     });
   });
+}
+
+/// Answers from a map of full request keys ("path?sorted=query"), recording what was asked.
+class _FakeApi implements CommuttrApi {
+  final Map<String, String> bodies = {};
+  final List<String> paths = [];
+
+  @override
+  Future<String> getRaw(String path, [Map<String, String>? query]) async {
+    final q = (query?.entries.toList() ?? [])..sort((a, b) => a.key.compareTo(b.key));
+    final key = q.isEmpty ? path : '$path?${q.map((e) => '${e.key}=${e.value}').join('&')}';
+    paths.add(key);
+    final body = bodies[key];
+    if (body == null) throw ApiException(ApiFailure.badRequest, 'no stub for $key', statusCode: 404);
+    return body;
+  }
 }
 
 class _NoApi implements CommuttrApi {

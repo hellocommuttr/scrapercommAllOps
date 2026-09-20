@@ -93,7 +93,11 @@ class RideCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    ride.noteText == null ? stopsLabel(ride) : '${stopsLabel(ride)} · ${ride.noteText}',
+                    [
+                      stopsLabel(ride),
+                      if (ride.walkLabel != null) ride.walkLabel!,
+                      if (ride.noteText != null) ride.noteText!,
+                    ].join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.text.bodyMedium?.copyWith(color: c.muted),

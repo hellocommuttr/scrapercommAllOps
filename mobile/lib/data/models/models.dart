@@ -194,6 +194,16 @@ String titleCase(String s) {
   return s.toLowerCase().replaceAllMapped(RegExp(r"(^|[\s(\-/'])([a-z])"), (m) => '${m[1]}${m[2]!.toUpperCase()}');
 }
 
+/// A row of /api/nearest_stops: an operator's closest stop to a point.
+class NearestStop {
+  const NearestStop(this.stop, this.distanceM);
+
+  factory NearestStop.fromJson(Json j) => NearestStop(StopDto.fromJson(j), _i(j['distance_m']) ?? 0);
+
+  final StopDto stop;
+  final int distanceM;
+}
+
 class StopDto {
   const StopDto({
     required this.id,
@@ -363,6 +373,25 @@ class PlanOption {
 
   /// What goes on the route chip: a bus number ("101" from "000101") or a train line.
   String get routeNumber => routeShortName(timetableNumber, routeLabel, operator);
+
+  /// The same option, with how far its stops are from where the rider actually asked.
+  PlanOption withWalk({int? boardAwayM, int? alightAwayM}) => PlanOption(
+    timetableNumber: timetableNumber,
+    routeLabel: routeLabel,
+    dayType: dayType,
+    dayLabel: dayLabel,
+    segmentStops: segmentStops,
+    roadPath: roadPath,
+    departures: departures,
+    boardApprox: boardApprox,
+    alightApprox: alightApprox,
+    boardLabel: boardLabel,
+    alightLabel: alightLabel,
+    operator: operator,
+    fare: fare,
+    boardAwayM: boardAwayM ?? this.boardAwayM,
+    alightAwayM: alightAwayM ?? this.alightAwayM,
+  );
 }
 
 /// Which operator a timetable number belongs to, for payloads without an operator field.
