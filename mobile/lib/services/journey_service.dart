@@ -108,6 +108,17 @@ class SearchFilters {
   );
 }
 
+/// How long a ride takes, or null when that is not known.
+///
+/// Where the timetable prints no time after the rider's stretch, both ends can only be
+/// given the same lower bound and the ride comes out at 0 min. That is not a duration;
+/// the card shows "–" instead.
+double? rideMinutes(double board, double? arrive, {required bool approx}) {
+  if (arrive == null) return null;
+  final m = arrive - board;
+  return m < 1 && approx ? null : m;
+}
+
 /// One bus or train a commuter can catch: a departure on a route, on a date.
 class Ride {
   Ride({
@@ -143,12 +154,15 @@ class Ride {
     return a < boardMinutes ? a + 1440 : a;
   }
 
-  double? get durationMinutes => arriveMinutes == null ? null : arriveMinutes! - boardMinutes;
+  double? get durationMinutes => rideMinutes(boardMinutes, arriveMinutes, approx: approx);
 
   bool get approx => departure.boardApprox || departure.arriveApprox;
 
   OperatorRef get operator => option.operator;
   Fare? get fare => option.fare;
+
+  /// What this ride costs, when it leaves: MyCiTi's peak or saver fare, else the fare.
+  int? get priceCents => fareAt(fare, weekday: dayTypeFor(date) == DayType.weekday, boardMinutes: boardMinutes);
 
   /// Metres to walk to the boarding stop and from the alighting stop, when this ride is
   /// another operator's service near the places asked for.
@@ -157,6 +171,17 @@ class Ride {
   /// "5 min walk away" — roughly, at 80 m a minute; null when the stops are the ones asked for.
   String? get walkLabel {
     if (walkM < 50) return null;
+    if (walkM > JourneyService.maxTransferWalkM) {
+      // An operator's nearest stop, further than a walk: say how far each end is rather
+      // than suggest an hour on foot.
+      String km(int m) => m < 1000 ? '$m m' : '${(m / 1000).toStringAsFixed(1)} km';
+      final board = option.boardAwayM ?? 0;
+      final alight = option.alightAwayM ?? 0;
+      return [
+        if (board >= 50) '${km(board)} to the stop',
+        if (alight >= 50) '${km(alight)} from the stop',
+      ].join(', ');
+    }
     final minutes = (walkM / 80).ceil();
     return walkM < 1000 ? '$walkM m walk' : '$minutes min walk';
   }
@@ -181,6 +206,7 @@ class JourneySearchOutcome {
     this.hiddenByFootnote = 0,
     this.otherDayTypes = const [],
     this.connections = const [],
+    this.allDayConnections = const [],
     this.hasAnyDirectService = true,
     this.hiddenByOperator = 0,
   });
@@ -210,8 +236,13 @@ class JourneySearchOutcome {
   /// Day types that do have service, when [date] has none.
   final List<DayType> otherDayTypes;
 
-  /// Trips with one change, when no single bus or train connects the two places.
+  /// Trips with one change that fit the chosen time, soonest first. Offered alongside the
+  /// direct rides, not only instead of them.
   final List<Connection> connections;
+
+  /// Every trip with one change that runs on [date], whatever the time — so "no more
+  /// today" can be told apart from "none at all".
+  final List<Connection> allDayConnections;
 
   /// Some allowed bus or train connects these points on some day.
   final bool hasAnyDirectService;
@@ -243,10 +274,47 @@ class JourneySearchOutcome {
   /// "buses", "trains", or "buses and trains".
   String get vehicles => _onlyTrains ? 'trains' : (_onlyBuses ? 'buses' : 'buses and trains');
 
+  /// The best ride of each operator, in the order the rides are sorted: what the home
+  /// screen shows before "View more". Showing only the single best ride hid the Golden
+  /// Arrow bus behind the train, and a rider cannot compare times and prices of operators
+  /// they cannot see.
+  List<Ride> get bestPerOperator {
+    final seen = <String>{};
+    return [
+      for (final r in rides)
+        if (seen.add(r.operator.code)) r,
+    ];
+  }
+
   Ride? get firstBus => allDay.isEmpty ? null : allDay.first;
   Ride? get lastBus => allDay.isEmpty ? null : allDay.last;
 
   bool get isStale => DateTime.now().difference(fetchedAt) > const Duration(days: 7);
+
+  /// The same outcome with the trips that need a change added, leaving the direct rides
+  /// alone. [otherDayTypes] is replaced only when given.
+  JourneySearchOutcome withConnections(
+    List<Connection> connections, {
+    List<Connection> allDayConnections = const [],
+    List<DayType>? otherDayTypes,
+  }) => JourneySearchOutcome(
+    from: from,
+    to: to,
+    date: date,
+    dayType: dayType,
+    rides: rides,
+    allDay: allDay,
+    fromCache: fromCache,
+    fetchedAt: fetchedAt,
+    holidayName: holidayName,
+    holidayFallback: holidayFallback,
+    hiddenByFootnote: hiddenByFootnote,
+    otherDayTypes: otherDayTypes ?? this.otherDayTypes,
+    connections: connections,
+    allDayConnections: allDayConnections,
+    hasAnyDirectService: hasAnyDirectService,
+    hiddenByOperator: hiddenByOperator,
+  );
 }
 
 /// Journey planning over the API, with timetable rules applied on the device.
@@ -303,6 +371,62 @@ class JourneyService {
     }
   }
 
+  /// How far away an operator's nearest stop may be and still be offered from a place or
+  /// your location. Further than a walk, but a rider near a bus stop who is 3 km from a
+  /// station still wants to know the train is there.
+  static const maxNearestStopM = 5000;
+
+  /// Each remaining operator's service from its nearest stop to the place asked for.
+  ///
+  /// A plan from a point only looks at stops close to it, so someone at Buh Rein was
+  /// offered the bus there and never the train from Kraaifontein, 3 km away. When either
+  /// end is a point (your location, a place, an address), every operator not already
+  /// shown is planned between its own nearest stops to the two ends, so the rider can
+  /// compare them all. The distances ride along on the option, for the card to show.
+  Future<List<PlanOption>> _nearestStopOptions(
+    Endpoint from,
+    Endpoint to,
+    SearchFilters filters,
+    Set<String> alreadyShown,
+  ) async {
+    if (from.isStop && to.isStop) return const [];
+    // A stop stands for itself on its own operator; on any other it stands for the
+    // place it is at.
+    //
+    // A place is where the rider named: a station called "Khayelitsha" is Khayelitsha,
+    // though the map puts the suburb nearer Nonkqubela. Same-named stops win over nearest.
+    Future<Map<String, (Endpoint, double)>> ends(Endpoint e) async => {
+      for (final (s, m) in await _ref.nearestStopPerOperator(e.lat, e.lon, maxMetres: maxNearestStopM.toDouble()))
+        if (s.endpoint != null) s.operatorCode: (s.endpoint!, m),
+      if (!e.isStop)
+        // No walk: the rider named it, and the suburb's point on the map is not where they are.
+        for (final (s, _) in await _ref.stopsNamed(e.name, e.lat, e.lon))
+          if (s.endpoint != null) s.operatorCode: (s.endpoint!, 0.0),
+      if (e.isStop && e.operatorCode != null) e.operatorCode!: (e, 0.0),
+    };
+    final starts = await ends(from);
+    final finishes = await ends(to);
+    final out = <PlanOption>[];
+    for (final code in starts.keys) {
+      if (alreadyShown.contains(code) || !finishes.containsKey(code)) continue;
+      if (!filters.allows(OperatorRef.from(code))) continue;
+      final (a, aM) = starts[code]!;
+      final (b, bM) = finishes[code]!;
+      if (a == b) continue;
+      try {
+        final res = await plan(a, b);
+        out.addAll(
+          res.data.options
+              .where((o) => o.operator.code == code)
+              .map((o) => o.withWalk(boardAwayM: aM.round(), alightAwayM: bM.round())),
+        );
+      } catch (_) {
+        // Offline, or nothing runs between those two stops: the other operators still show.
+      }
+    }
+    return out;
+  }
+
   /// Trips with one change. Either end may be a stop or a map pin.
   Future<Cached<ConnectionsResponse>> connections(Endpoint from, Endpoint to) => _api.get(
     '/api/connections',
@@ -349,7 +473,11 @@ class JourneyService {
       filters,
       res.data.options.map((o) => o.operator.code).toSet(),
     );
-    final options = [...res.data.options, ...nearby];
+    // Then, from a place or your location, any operator still missing, from its nearest stop.
+    final further = await _nearestStopOptions(from, to, filters, {
+      for (final o in [...res.data.options, ...nearby]) o.operator.code,
+    });
+    final options = [...res.data.options, ...nearby, ...further];
     final notes = <String, Map<String, String>>{};
     for (final o in options) {
       notes[o.timetableNumber] ??= await _ref.notesFor(o.timetableNumber);
@@ -365,34 +493,71 @@ class JourneyService {
       fromCache: res.fromCache,
       fetchedAt: res.fetchedAt,
     );
-    if (!outcome.hasAnyDirectService) {
-      try {
-        final c = await connections(from, to);
-        final dt = outcome.dayType == DayType.publicHoliday ? DayType.sunday : outcome.dayType;
-        // A connection is offered only when every leg's operator is switched on.
-        final allowed = c.data.connections.where((x) => x.legs.every((l) => filters.allows(l.operator))).toList();
-        final forDay = allowed.where((x) => DayType.fromApi(x.dayType) == dt).toList();
-        outcome = JourneySearchOutcome(
-          from: from,
-          to: to,
-          date: date,
-          dayType: outcome.dayType,
-          rides: const [],
-          allDay: const [],
-          fromCache: outcome.fromCache,
-          fetchedAt: outcome.fetchedAt,
-          holidayName: outcome.holidayName,
-          connections: forDay,
-          hasAnyDirectService: false,
-          otherDayTypes: forDay.isEmpty
-              ? allowed.map((x) => DayType.fromApi(x.dayType)).whereType<DayType>().toSet().toList()
-              : const [],
-        );
-      } on NotAvailableOffline {
-        // Keep the plain "no direct bus" outcome.
-      }
+    // A trip with a change is worth showing even when something runs straight through.
+    // Asking only when nothing did meant one direct bus hid every other way to make the
+    // journey: Kraaifontein to Rosebank has a single direct bus and sixteen ways to do it
+    // by train, and a rider looking for the train was told there was none.
+    try {
+      final c = await connections(from, to);
+      final dt = outcome.dayType == DayType.publicHoliday ? DayType.sunday : outcome.dayType;
+      // A connection is offered only when every leg's operator is switched on.
+      final allowed = c.data.connections.where((x) => x.legs.every((l) => filters.allows(l.operator))).toList();
+      final forDay = allowed.where((x) => DayType.fromApi(x.dayType) == dt).toList()..sort(_bySoonest);
+      outcome = outcome.withConnections(
+        sortConnections(
+          forDay
+              .where((x) => fitsTime(x, filters, date: date, minutesNow: clock.minutesNow, today: clock.today))
+              .toList(),
+          filters,
+        ),
+        allDayConnections: forDay,
+        // Only when nothing runs straight through either is the rider stuck for the day.
+        // With a direct service the day types already come from its own timetable.
+        otherDayTypes: !outcome.hasAnyDirectService && forDay.isEmpty
+            ? allowed.map((x) => DayType.fromApi(x.dayType)).whereType<DayType>().toSet().toList()
+            : null,
+      );
+    } catch (_) {
+      // Offline, or the API could not plan a change between these two. The direct rides
+      // are still worth showing, so this never fails the search.
     }
     return outcome;
+  }
+
+  static int _bySoonest(Connection a, Connection b) =>
+      (a.legs.first.boardMinutes ?? 1e9).compareTo(b.legs.first.boardMinutes ?? 1e9);
+
+  /// Whether a trip with a change leaves at the chosen time — the same rule the direct
+  /// rides follow, so "Leave now" never offers a connection whose first bus has gone and
+  /// a direct one that hasn't. Departure is the first leg; arrival is the last.
+  static bool fitsTime(
+    Connection c,
+    SearchFilters filters, {
+    required ServiceDate date,
+    required double minutesNow,
+    required ServiceDate today,
+  }) {
+    final after = filters.departAfter?.toDouble() ?? (date == today ? minutesNow - 1 : 0);
+    final board = c.legs.first.boardMinutes;
+    if (board != null && board < after) return false;
+    if (filters.arriveBy != null) {
+      final arrive = c.legs.last.arriveMinutes;
+      if (arrive == null || arrive > filters.arriveBy!) return false;
+    }
+    return true;
+  }
+
+  /// Trips with a change in the order the rider asked for: soonest first by default, which
+  /// is what "Leave now" means and what the one card shown before "View more" should be.
+  static List<Connection> sortConnections(List<Connection> cs, SearchFilters filters) {
+    final out = [...cs]..sort(_bySoonest);
+    int? total(Connection c) => c.totalMinutes;
+    if (filters.preference == JourneyPreference.fastest || filters.sort == SortBy.duration) {
+      out.sort((a, b) => (total(a) ?? 1 << 30).compareTo(total(b) ?? 1 << 30));
+    } else if (filters.sort == SortBy.arrival) {
+      out.sort((a, b) => (a.legs.last.arriveMinutes ?? 1e9).compareTo(b.legs.last.arriveMinutes ?? 1e9));
+    }
+    return out;
   }
 
   /// The timetable rules, separated from I/O so they can be tested exhaustively.

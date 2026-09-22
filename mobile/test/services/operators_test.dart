@@ -129,7 +129,8 @@ void main() {
     test('a bus card price is never the cash fare', () {
       final bus = PlanOption.fromJson(busJson);
       expect(bus.operator, OperatorRef.goldenArrow);
-      expect(bus.fare!.cashCents, isNull);
+      // Golden Arrow prices are not shown at all for now (see pricesShownFor).
+      expect(bus.fare?.cashCents, isNull);
     });
 
     test('formatRands', () {

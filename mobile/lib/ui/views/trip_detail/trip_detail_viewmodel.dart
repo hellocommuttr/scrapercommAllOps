@@ -36,6 +36,11 @@ class TripDetailViewModel extends BaseViewModel {
 
   PlannedJourney? planned;
   TripStopsResponse? trip;
+
+  /// The vehicle's whole run, first stop to terminus, for the stop list: where it starts
+  /// and ends matters as much as where the rider gets on and off. [trip] stays the
+  /// rider's own stretch, which the planner saves and the trip in progress follows.
+  TripStopsResponse? wholeTrip;
   bool tripFromCache = false;
   DateTime? tripFetchedAt;
   bool tripUnavailable = false;
@@ -60,6 +65,7 @@ class TripDetailViewModel extends BaseViewModel {
   late bool boardApprox;
   late bool arriveApprox;
   late String boardRaw;
+  String arriveRaw = '';
   late int scheduleId, tripIndex, fromSeq, toSeq;
   List<(double, double)> roadPath = const [];
   OperatorRef operator = OperatorRef.goldenArrow;
@@ -79,7 +85,7 @@ class TripDetailViewModel extends BaseViewModel {
   int get arriveEarly => _settings.arriveEarlyMinutes;
   String get boardTime => formatMinutes(boardMinutes);
   String? get arriveTime => arriveMinutes == null ? null : formatMinutes(arriveMinutes!);
-  double? get duration => arriveMinutes == null ? null : arriveMinutes! - boardMinutes;
+  double? get duration => rideMinutes(boardMinutes, arriveMinutes, approx: boardApprox || arriveApprox);
   double get minutesUntil => _clock.minutesUntil(date, boardMinutes);
   String? get noteCode => Footnotes.codeOf(boardRaw);
   String get rideKey => '$scheduleId:$tripIndex:$fromSeq:$toSeq';
@@ -111,6 +117,7 @@ class TripDetailViewModel extends BaseViewModel {
       boardApprox = r.departure.boardApprox;
       arriveApprox = r.departure.arriveApprox;
       boardRaw = r.departure.boardRaw;
+      arriveRaw = r.departure.arriveRaw;
       scheduleId = r.departure.scheduleId;
       tripIndex = r.departure.tripIndex;
       fromSeq = r.departure.fromSeq;
@@ -136,7 +143,16 @@ class TripDetailViewModel extends BaseViewModel {
     timetable = await _ref.currentTimetable(timetableNumber, date);
     legend = await _ref.notesFor(timetableNumber);
     await _loadTrip();
+    await _loadWholeTrip();
     setBusy(false);
+  }
+
+  Future<void> _loadWholeTrip() async {
+    try {
+      wholeTrip = (await _journeys.tripStops(scheduleId, tripIndex, 0, 9999)).data;
+    } catch (_) {
+      // Offline without it saved: the rider's own stretch is shown instead.
+    }
   }
 
   void _fromPlanned(PlannedJourney j) {
@@ -156,10 +172,13 @@ class TripDetailViewModel extends BaseViewModel {
     boardApprox = row.boardApprox;
     arriveApprox = row.arriveApprox;
     boardRaw = row.boardRaw;
+    arriveRaw = row.arriveRaw;
     scheduleId = row.scheduleId;
     tripIndex = row.tripIndex;
     fromSeq = row.fromSeq;
     toSeq = row.toSeq;
+    boardLabel = j.boardLabel;
+    alightLabel = j.alightLabel;
     trip = j.trip;
     headerReady = true;
   }

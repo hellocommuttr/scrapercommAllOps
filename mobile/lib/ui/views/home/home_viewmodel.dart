@@ -70,6 +70,9 @@ class HomeViewModel extends BaseViewModel {
   SearchProblem? problem;
   String? problemDetail;
   bool showAll = false;
+
+  /// Trips with a change past the first one, which is all that shows until asked.
+  bool showAllConnections = false;
   bool tripSaved = false;
 
   SavedPlace? home;
@@ -96,6 +99,7 @@ class HomeViewModel extends BaseViewModel {
     final date = filters.date;
     final day = date == null ? '' : '${formatDayRelative(date, _clock.today)}, ';
     if (filters.arriveBy != null) return '${day}arrive by ${formatMinutes(filters.arriveBy!)}';
+    if (isAllDay) return date == null ? 'All day' : '${day}all day';
     if (filters.departAfter != null) return '${day}leave after ${formatMinutes(filters.departAfter!)}';
     return date == null ? 'Leave now' : '${formatDayRelative(date, _clock.today)}, any time';
   }
@@ -150,6 +154,11 @@ class HomeViewModel extends BaseViewModel {
   }
 
   /// Depart now / depart at / arrive by, from the "Depart now ▾" control.
+  /// Every departure that day, from the first to the last.
+  bool get isAllDay => filters.departAfter == 0 && filters.arriveBy == null;
+
+  Future<void> setAllDay() => setWhen(departAt: 0);
+
   Future<void> setWhen({int? departAt, int? arriveBy}) async {
     filters = filters.copyWith(departAfter: () => departAt, arriveBy: () => arriveBy);
     rebuildUi();
@@ -196,7 +205,11 @@ class HomeViewModel extends BaseViewModel {
     final a = toWork ? h : w, b = toWork ? w : h;
     try {
       final o = await _journeys.search(a, b, const SearchFilters(), pin: true);
-      commute = CommuteSnapshot(from: a, to: b, rides: o.rides.take(3).toList(), fromCache: o.fromCache);
+      // Each operator's best first, as on the results, then the next soonest to fill three.
+      final best = o.bestPerOperator;
+      final rides = [...best, ...o.rides.where((r) => !best.contains(r))].take(3).toList()
+        ..sort((x, y) => o.rides.indexOf(x).compareTo(o.rides.indexOf(y)));
+      commute = CommuteSnapshot(from: a, to: b, rides: rides, fromCache: o.fromCache);
     } catch (_) {
       commute = CommuteSnapshot(from: a, to: b, rides: const [], unavailable: true);
     }
@@ -268,6 +281,7 @@ class HomeViewModel extends BaseViewModel {
     searching = true;
     problem = null;
     showAll = false;
+    showAllConnections = false;
     rebuildUi();
     try {
       outcome = await _journeys.search(from!, to!, filters);
@@ -324,6 +338,11 @@ class HomeViewModel extends BaseViewModel {
 
   void toggleShowAll() {
     showAll = !showAll;
+    rebuildUi();
+  }
+
+  void toggleShowAllConnections() {
+    showAllConnections = !showAllConnections;
     rebuildUi();
   }
 

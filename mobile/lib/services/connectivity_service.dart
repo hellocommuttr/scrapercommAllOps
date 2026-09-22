@@ -43,13 +43,24 @@ class ConnectivityService with ListenableServiceMixin {
     _metered.value = results.contains(ConnectivityResult.mobile) && !results.contains(ConnectivityResult.wifi);
   }
 
+  DateTime? _lastSuccess;
+
   void reportSuccess() {
+    _lastSuccess = DateTime.now();
     if (_offline.value) _offline.value = false;
   }
 
-  void reportOffline() {
+  /// A request failed for lack of network. A timeout straight after other requests came
+  /// back is one slow request, not a lost connection: searching from a place asked for
+  /// journeys with a change, took longer than the timeout, and told a rider looking at
+  /// fresh results that they were offline.
+  void reportOffline({bool timedOut = false}) {
+    if (timedOut && _lastSuccess != null && DateTime.now().difference(_lastSuccess!) < recentSuccess) return;
     if (!_offline.value) _offline.value = true;
   }
+
+  /// How recently a request must have succeeded for a timeout not to count as offline.
+  static const recentSuccess = Duration(seconds: 45);
 
   void dispose() => _sub?.cancel();
 }

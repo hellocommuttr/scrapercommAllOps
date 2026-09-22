@@ -71,6 +71,9 @@ class Fare {
     this.basisTo,
     this.zoneApprox = false,
     this.kind,
+    this.saverCents,
+    this.dayPassCents,
+    this.threeDayPassCents,
   });
 
   static Fare? fromJson(Object? v) {
@@ -87,6 +90,9 @@ class Fare {
       basisTo: _s(v['basis_to']),
       zoneApprox: v['zone_approx'] == true,
       kind: _s(v['kind']),
+      saverCents: _i(v['saver_cents']),
+      dayPassCents: _i(v['day_pass_cents']),
+      threeDayPassCents: _i(v['three_day_pass_cents']),
     );
   }
 
@@ -107,6 +113,32 @@ class Fare {
 
   /// Connections only: 'through' (one ticket) or 'per_leg' (pay for each leg).
   final String? kind;
+
+  /// MyCiTi: the saver fare, with [cashCents] its peak fare. Both are myconnect card
+  /// fares; MyCiTi takes no cash.
+  final int? saverCents;
+
+  /// MyCiTi's 1-day and 3-day passes. [weeklyCents] is its 7-day pass.
+  final int? dayPassCents;
+  final int? threeDayPassCents;
+
+  /// A MyCiTi fare, priced by distance band with a peak and a saver price.
+  bool get isMyciti => basis == 'myciti_distance';
+}
+
+/// MyCiTi's peak: a journey starting on a weekday from 06:45 to 08:00 or 16:15 to 17:30.
+/// Every other time, weekends and public holidays, is saver.
+bool isMycitiPeak({required bool weekday, required double boardMinutes}) {
+  final m = boardMinutes % 1440;
+  return weekday && ((m >= 405 && m <= 480) || (m >= 975 && m <= 1050));
+}
+
+/// The fare that applies to boarding at [boardMinutes]: MyCiTi's peak or saver fare, or
+/// for everyone else the one published fare.
+int? fareAt(Fare? f, {required bool weekday, double? boardMinutes}) {
+  if (f == null) return null;
+  if (f.saverCents == null || boardMinutes == null) return f.cashCents;
+  return isMycitiPeak(weekday: weekday, boardMinutes: boardMinutes) ? f.cashCents : f.saverCents;
 }
 
 /// "R12.00".
@@ -157,10 +189,17 @@ class Endpoint {
   /// A train station rather than a bus stop.
   bool get isStation => operatorKind == 'train';
 
-  /// Query parameters for /api/plan, e.g. `from=7` or `from_lat=..&from_lon=..`.
-  /// Pins are rounded to ~11 m so near-identical taps share a cache entry.
-  Map<String, String> query(String prefix) =>
-      isStop ? {prefix: '$id'} : {'${prefix}_lat': lat.toStringAsFixed(4), '${prefix}_lon': lon.toStringAsFixed(4)};
+  /// Query parameters for /api/plan, e.g. `from=7` or `from_lat=..&from_lon=..&from_name=..`.
+  /// Pins are rounded to ~11 m so near-identical taps share a cache entry. A pin's name
+  /// goes too: a place called "Khayelitsha" means Khayelitsha station, which the map puts
+  /// 4.5 km from the place itself.
+  Map<String, String> query(String prefix) => isStop
+      ? {prefix: '$id'}
+      : {
+          '${prefix}_lat': lat.toStringAsFixed(4),
+          '${prefix}_lon': lon.toStringAsFixed(4),
+          if (name.trim().isNotEmpty) '${prefix}_name': name.trim(),
+        };
 
   String get cacheKey => isStop ? 's$id' : 'p${lat.toStringAsFixed(4)},${lon.toStringAsFixed(4)}';
 
@@ -328,7 +367,9 @@ class PlanOption {
     this.alightAwayM,
   });
 
-  factory PlanOption.fromJson(Json j) => PlanOption(
+  factory PlanOption.fromJson(Json j) {
+    final operator = OperatorRef.from(_s(j['operator_code']), name: _s(j['operator_name']), kind: _s(j['operator_kind']));
+    return PlanOption(
     timetableNumber: _s(j['timetable_number']) ?? '',
     routeLabel: _s(j['route_label']) ?? '',
     dayType: _s(j['day_type']) ?? '',
@@ -343,11 +384,12 @@ class PlanOption {
     alightApprox: j['alight_approx'] == true,
     boardLabel: _s(j['board_label']) ?? '',
     alightLabel: _s(j['alight_label']) ?? '',
-    operator: OperatorRef.from(_s(j['operator_code']), name: _s(j['operator_name']), kind: _s(j['operator_kind'])),
-    fare: Fare.fromJson(j['fare']),
+    operator: operator,
+    fare: pricesShownFor(operator) ? Fare.fromJson(j['fare']) : null,
     boardAwayM: _i(j['board_away_m']),
     alightAwayM: _i(j['alight_away_m']),
   );
+  }
 
   /// Golden Arrow's timetable number ("000101"); empty for trains, which have none.
   final String timetableNumber;
@@ -374,6 +416,13 @@ class PlanOption {
   /// What goes on the route chip: a bus number ("101" from "000101") or a train line.
   String get routeNumber => routeShortName(timetableNumber, routeLabel, operator);
 
+  /// The official stops either side when the rider gets on / off at a point on the road.
+  (String, String)? get boardBetween => officialStopsAround(boardLabel);
+  (String, String)? get alightBetween => officialStopsAround(alightLabel);
+
+  /// Getting on or off somewhere the timetable names no stop.
+  bool get unofficialStop => boardBetween != null || alightBetween != null;
+
   /// The same option, with how far its stops are from where the rider actually asked.
   PlanOption withWalk({int? boardAwayM, int? alightAwayM}) => PlanOption(
     timetableNumber: timetableNumber,
@@ -393,6 +442,43 @@ class PlanOption {
     alightAwayM: alightAwayM ?? this.alightAwayM,
   );
 }
+
+final _between = RegExp(r'^between (.+?) and (.+)$');
+
+/// The two timetable stops either side of a rider's own point on the road, from the
+/// API's "between CAPE TOWN and N1 FREEWAY"; null for a stop the timetable names.
+(String, String)? officialStopsAround(String label) {
+  final m = _between.firstMatch(label);
+  return m == null ? null : (m[1]!, m[2]!);
+}
+
+/// Why a point on the road is not a sure place to catch a bus, and where is.
+///
+/// The planner finds these from the road a route drives, so the bus does pass. Whether it
+/// stops there is up to the driver: nothing in the timetable says it will, and a rider who
+/// waits there can watch it go by. The timetable's own stops are the safe bet.
+String? unofficialStopAdvice(PlanOption o) => unofficialStopAdviceFor(o.boardLabel, o.alightLabel, o.operator);
+
+/// The same, from the two labels, for screens that keep those rather than the option.
+String? unofficialStopAdviceFor(String boardLabel, String alightLabel, OperatorRef operator) {
+  String both((String, String) s) => '${titleCase(s.$1)} or ${titleCase(s.$2)}';
+  final on = officialStopsAround(boardLabel);
+  final off = officialStopsAround(alightLabel);
+  if (on == null && off == null) return null;
+  return [
+    'Not an official stop: the ${operator.vehicle} passes here but is not sure to stop.',
+    if (on != null) 'To be sure of catching it, get on at ${both(on)}.',
+    if (off != null) '${on != null ? 'And get' : 'Get'} off at ${both(off)} to be sure it stops.',
+  ].join(' ');
+}
+
+/// Whether the app shows this operator's prices.
+///
+/// Not Golden Arrow's, for now. What the API holds for Golden Arrow are Gold Card prices
+/// and a cash price for a handful of routes, and Golden Arrow does not publish cash fares
+/// across the network: a rider shown R44.50 for a trip may be charged something else at the
+/// door, and a wrong price is worse than none. The trip screen says to ask the driver.
+bool pricesShownFor(OperatorRef operator) => operator.code != OperatorRef.goldenArrow.code;
 
 /// Which operator a timetable number belongs to, for payloads without an operator field.
 OperatorRef operatorForTimetableNumber(String timetableNumber) {
@@ -555,7 +641,7 @@ class ConnectionLeg {
     tripIndex: _i(j['trip_index'])!,
     fromSeq: _i(j['from_seq'])!,
     toSeq: _i(j['to_seq'])!,
-    fare: Fare.fromJson(j['fare']),
+    fare: pricesShownFor(operatorForTimetableNumber(_s(j['timetable_number']) ?? '')) ? Fare.fromJson(j['fare']) : null,
   );
 
   final int fromStopId;
@@ -624,14 +710,18 @@ class Connection {
     this.fare,
   });
 
-  factory Connection.fromJson(Json j) => Connection(
-    dayType: _s(j['day_type']) ?? '',
-    changeAt: ((j['change_at'] as List?) ?? const []).cast<String>(),
-    legs: _list(j['legs']).map(ConnectionLeg.fromJson).toList(),
-    waitMinutes: _i(j['wait_minutes']),
-    totalMinutes: _i(j['total_minutes']),
-    fare: Fare.fromJson(j['fare']),
-  );
+  factory Connection.fromJson(Json j) {
+    final legs = _list(j['legs']).map(ConnectionLeg.fromJson).toList();
+    return Connection(
+      dayType: _s(j['day_type']) ?? '',
+      changeAt: ((j['change_at'] as List?) ?? const []).cast<String>(),
+      legs: legs,
+      waitMinutes: _i(j['wait_minutes']),
+      totalMinutes: _i(j['total_minutes']),
+      // A total that includes a leg whose price is not shown would be a price not shown.
+      fare: legs.every((l) => pricesShownFor(l.operator)) ? Fare.fromJson(j['fare']) : null,
+    );
+  }
 
   final String dayType;
   final List<String> changeAt;
@@ -639,6 +729,26 @@ class Connection {
   final int? waitMinutes;
   final int? totalMinutes;
   final Fare? fare;
+
+  /// One ticket covers the whole trip (Metrorail's is for the distance between the two
+  /// end stations, change or no change; MyCiTi charges one fare for the whole distance),
+  /// rather than a ticket per ride.
+  bool get oneTicket => fare?.kind == 'through';
+
+  /// What the whole trip costs when it starts as it does, on a weekday or not: MyCiTi's
+  /// peak or saver fare, otherwise the one fare.
+  int? priceOn({required bool weekday}) => fareAt(fare, weekday: weekday, boardMinutes: legs.first.boardMinutes);
+
+  /// Each ride's own price, "Northern R12.00 + Southern R12.00", when every ride has one.
+  /// Where one ticket covers the trip these are what each would cost on its own.
+  String? legFaresOn({required bool weekday}) {
+    final parts = [
+      for (final l in legs)
+        if (fareAt(l.fare, weekday: weekday, boardMinutes: l.boardMinutes) case final c?)
+          '${l.routeNumber} ${formatRands(c)}',
+    ];
+    return parts.length == legs.length && parts.isNotEmpty ? parts.join(' + ') : null;
+  }
 }
 
 class ConnectionsResponse {

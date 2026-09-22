@@ -118,6 +118,10 @@ class SavedJourneys extends Table {
   TextColumn get status => text().withDefault(const Constant('planned'))(); // planned|active|completed
   IntColumn get reminderLeadMinutes => integer().nullable()();
   TextColumn get groupId => text().nullable()(); // legs of one connection share a group
+  // Where the rider gets on and off when it is a point on the road ("between A and B"),
+  // so a saved trip can still say the bus is not sure to stop there. Null before v3.
+  TextColumn get boardLabel => text().nullable()();
+  TextColumn get alightLabel => text().nullable()();
   IntColumn get createdAt => integer()();
   IntColumn get completedAt => integer().nullable()();
 
@@ -205,7 +209,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -216,7 +220,12 @@ class AppDatabase extends _$AppDatabase {
     },
     // Future schema changes go here as `if (from < 2) { ... }` steps, never as a
     // drop-and-recreate: the planner and favourites exist nowhere else.
-    onUpgrade: (m, from, to) async {},
+    onUpgrade: (m, from, to) async {
+      if (from < 3) {
+        await m.addColumn(savedJourneys, savedJourneys.boardLabel);
+        await m.addColumn(savedJourneys, savedJourneys.alightLabel);
+      }
+    },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },

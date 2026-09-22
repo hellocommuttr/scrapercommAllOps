@@ -155,6 +155,44 @@ void main() {
       expect(o.vehicles, 'buses');
     });
 
+    test('the best ride of each operator leads, so bus, MyCiTi and train can be compared', () {
+      Map<String, Object?> at(Map<String, Object?> j, int schedule, int board) => {
+        ...j,
+        'departures': [
+          {
+            ...((j['departures'] as List).first as Map<String, Object?>),
+            'schedule_id': schedule,
+            'board_minutes': board,
+            'arrive_minutes': board + 40,
+          },
+        ],
+      };
+      final train = <String, Object?>{...gabsJson, 'timetable_number': '', 'operator_code': 'metrorail', 'operator_kind': 'train'};
+      final o = JourneyService.buildOutcome(
+        from: const Endpoint.pin(name: 'Buh Rein', lat: -33.82, lon: 18.71),
+        to: const Endpoint.pin(name: 'Cape Town', lat: -33.93, lon: 18.42),
+        response: PlanResponse.fromJson({
+          'options': [
+            // Two trains first, then two buses, then MyCiTi: all three show before "more".
+            at(train, 1, 480),
+            at(train, 2, 500),
+            at(gabsJson, 3, 510),
+            at(gabsJson, 4, 520),
+            at(mycitiJson, 5, 530),
+          ],
+        }),
+        notes: const {},
+        filters: const SearchFilters(departAfter: 0),
+        date: monday,
+        minutesNow: null,
+        fromCache: false,
+        fetchedAt: DateTime(2026),
+      );
+      expect(o.rides, hasLength(5));
+      expect(o.bestPerOperator.map((r) => r.operator.code), ['metrorail', 'gabs', 'myciti']);
+      expect(o.bestPerOperator.map((r) => r.boardMinutes), [480, 510, 530]);
+    });
+
     test('switching MyCiTi off hides them', () {
       final o = outcome(const SearchFilters(departAfter: 0, excludedOperators: {'myciti'}));
       expect(o.rides, isEmpty);
@@ -172,7 +210,10 @@ void main() {
     // is what turns up the MyCiTi stops round the corner.
     const gabsFrom = Endpoint.stop(id: 7, name: 'CAPE TOWN', lat: -33.9248, lon: 18.4241, operatorCode: 'gabs');
     const gabsTo = Endpoint.stop(id: 101, name: 'SEA POINT', lat: -33.9200, lon: 18.3860, operatorCode: 'gabs');
-    const pinPlan = '/api/plan?from_lat=-33.9248&from_lon=18.4241&to_lat=-33.9200&to_lon=18.3860';
+    // The same two points, named as the stops are: a stop called what the rider asked for
+    // is where they mean, so the name goes with the point.
+    const pinPlan =
+        '/api/plan?from_lat=-33.9248&from_lon=18.4241&from_name=CAPE TOWN&to_lat=-33.9200&to_lon=18.3860&to_name=SEA POINT';
 
     Map<String, Object?> nearby(int boardAway, int alightAway) => {
       ...mycitiJson,
@@ -237,13 +278,80 @@ void main() {
     test('two map pins are planned once, because that plan already covers every operator', () async {
       const from = Endpoint.pin(name: 'Long Street', lat: -33.9248, lon: 18.4241);
       const to = Endpoint.pin(name: 'Main Road', lat: -33.9200, lon: 18.3860);
-      api.bodies[pinPlan] = jsonEncode({
+      api.bodies['/api/plan?from_lat=-33.9248&from_lon=18.4241&from_name=Long Street&to_lat=-33.9200&to_lon=18.3860&to_name=Main Road'] = jsonEncode({
         'options': [gabsJson, nearby(149, 210)],
       });
 
       final o = await journeys.search(from, to, const SearchFilters(date: monday, departAfter: 0));
       expect(o.allDay.map((r) => r.operator.code), ['gabs', 'myciti']);
       expect(api.paths.where((p) => p.startsWith('/api/plan')).length, 1);
+    });
+
+    test('from your location, the train from the nearest station is offered beside the bus', () async {
+      // Standing at Buh Rein, going to Cape Town. The plan from that point only reaches
+      // the bus stop; Kraaifontein station is 3.5 km away.
+      const here = Endpoint.pin(name: 'My location', lat: -33.8205, lon: 18.7141);
+      const capeTown = Endpoint.pin(name: 'Cape Town', lat: -33.9288, lon: 18.4172);
+      api.bodies['/api/plan?from_lat=-33.8205&from_lon=18.7141&from_name=My location&to_lat=-33.9288&to_lon=18.4172&to_name=Cape Town'] =
+          jsonEncode({
+        'options': [gabsJson],
+      });
+      api.bodies['/api/plan?from=44240&to=43907'] = jsonEncode({
+        'options': [
+          {
+            ...gabsJson,
+            'timetable_number': '',
+            'route_label': 'Northern Line',
+            'operator_code': 'metrorail',
+            'operator_name': 'Metrorail',
+            'operator_kind': 'train',
+            'board_label': 'KRAAIFONTEIN',
+            'alight_label': 'CAPE TOWN',
+            'fare': null,
+            'departures': [
+              {
+                'board_raw': '08:10',
+                'board_approx': false,
+                'board_minutes': 490,
+                'arrive_raw': '09:05',
+                'arrive_approx': false,
+                'arrive_minutes': 545,
+                'schedule_id': 70001,
+                'trip_index': 0,
+                'from_seq': 0,
+                'to_seq': 20,
+              },
+            ],
+          },
+        ],
+      });
+
+      final o = await journeys.search(here, capeTown, const SearchFilters(date: monday, departAfter: 0));
+      expect(o.allDay.map((r) => r.operator.code).toSet(), {'gabs', 'metrorail'});
+      final train = o.allDay.firstWhere((r) => r.operator == OperatorRef.metrorail);
+      expect(train.option.boardAwayM, inInclusiveRange(3400, 3550));
+      // Too far to call a walk: the card says how far each stop is instead.
+      // "Cape Town" is Cape Town station by name, so there is no walk at that end.
+      expect(train.walkLabel, '3.5 km to the stop');
+      expect(train.walkLabel, isNot(contains('walk')));
+    });
+
+    test('a place called what a station is called starts from that station', () async {
+      // The map puts Khayelitsha 4.5 km from Khayelitsha station, beyond the nearest-stop
+      // reach of Nonkqubela; the rider named Khayelitsha and means that station.
+      const khayelitsha = Endpoint.pin(name: 'Khayelitsha', lat: -34.0406, lon: 18.6674);
+      const capeTown = Endpoint.pin(name: 'Cape Town', lat: -33.9288, lon: 18.4172);
+      api.bodies['/api/plan?from_lat=-34.0406&from_lon=18.6674&from_name=Khayelitsha&to_lat=-33.9288&to_lon=18.4172&to_name=Cape Town'] =
+          jsonEncode({'options': []});
+      await journeys.search(khayelitsha, capeTown, const SearchFilters(date: monday, departAfter: 0));
+      final trainPlans = api.paths.where((p) => p.startsWith('/api/plan?from=') && p.endsWith('&to=43907'));
+      expect(trainPlans, ['/api/plan?from=44412&to=43907']);
+    });
+
+    test('two stops the rider chose are not swapped for other operators far away', () async {
+      final o = await journeys.search(gabsFrom, gabsTo, const SearchFilters(date: monday, departAfter: 0));
+      expect(o.allDay.every((r) => r.operator == OperatorRef.goldenArrow), isTrue);
+      expect(api.paths.where((p) => p.startsWith('/api/plan?from=') && p != '/api/plan?from=7&to=101'), isEmpty);
     });
   });
 

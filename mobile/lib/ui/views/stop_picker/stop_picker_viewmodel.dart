@@ -73,7 +73,9 @@ class StopPickerViewModel extends BaseViewModel {
     searchingAddresses = true;
     rebuildUi();
     try {
-      final hits = await _journeys.geocode('${query.trim()}, Cape Town');
+      // The API already keeps to Cape Town. Adding ", Cape Town" here stopped its own list
+      // of places matching at all, so "Cape Town" and "Buh Rein" never came back as places.
+      final hits = await _journeys.geocode(query.trim());
       if (request != _geoRequest) return;
       addresses = hits.take(5).toList();
       addressMessage = hits.isEmpty && stops.isEmpty ? 'No places found.' : null;
@@ -103,7 +105,16 @@ class StopPickerViewModel extends BaseViewModel {
       return;
     }
     myLocation = (r.lat!, r.lon!);
-    nearby = await _ref.nearestStops(r.lat!, r.lon!, limit: 3);
+    // The closest few, then each other operator's closest: the three nearest stops are
+    // usually all Golden Arrow, which hid the station a rider could also walk to.
+    final closest = await _ref.nearestStops(r.lat!, r.lon!, limit: 3);
+    final perOperator = await _ref.nearestStopPerOperator(
+      r.lat!,
+      r.lon!,
+      maxMetres: JourneyService.maxNearestStopM.toDouble(),
+    );
+    final ids = {for (final (s, _) in closest) s.id};
+    nearby = [...closest, ...perOperator.where((p) => !ids.contains(p.$1.id))];
     rebuildUi();
   }
 

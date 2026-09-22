@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../../core/service_day.dart';
@@ -39,8 +37,9 @@ int _currentIndex(TripProgress p) => switch (p.phase) {
   _ => 0,
 };
 
-/// A horizontal stop rail: up to five stops around the scheduled position, the current one
-/// an orange bubble with the bus or train, labels under each dot.
+/// A horizontal stop rail: the stops around the scheduled position, the current one an
+/// orange bubble with the bus or train, labels under each dot, and the destination always
+/// last — with "+3 stops" standing for any left out in between.
 class StopRail extends StatelessWidget {
   const StopRail({super.key, required this.progress});
 
@@ -49,6 +48,22 @@ class StopRail extends StatelessWidget {
   static const _window = 5;
   static const _bubble = 32.0;
 
+  /// Which stops the rail draws, in order, for a trip of [n] stops with the bus at [cur];
+  /// null is the gap standing in for the ones left out.
+  ///
+  /// The destination is always drawn. Cutting the rail off wherever five stops happened to
+  /// end read as though the trip ended there: Cape Town to Bellville stopped at Elsies
+  /// River, with nothing to say Bellville was still to come.
+  static List<int?> slotsFor(int n, int cur) {
+    if (n <= _window) return [for (var i = 0; i < n; i++) i];
+    // The stops round the bus take the room left after the gap and the destination.
+    const around = _window - 2;
+    final start = (cur - 1).clamp(0, n - 1 - around).toInt();
+    // Near the end, the last five run straight into the destination with nothing to skip.
+    if (start >= n - _window) return [for (var i = n - _window; i < n; i++) i];
+    return [for (var i = start; i < start + around; i++) i, null, n - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = progress;
@@ -56,13 +71,87 @@ class StopRail extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.primary;
     final n = p.stops.length;
     final cur = _currentIndex(p);
-    final start = (cur - 2).clamp(0, math.max(0, n - _window)).toInt();
-    final end = math.min(n, start + _window);
+    final slots = slotsFor(n, cur);
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final labelStyle = context.text.labelSmall?.copyWith(fontSize: 11, fontWeight: FontWeight.w500);
 
     Widget half(bool show, bool travelled) => Expanded(
       child: show ? Container(height: 3, color: travelled ? accent : c.cardBorder) : const SizedBox.shrink(),
     );
+
+    Widget stop(int i) => Column(
+      children: [
+        SizedBox(
+          height: _bubble,
+          child: Row(
+            children: [
+              half(i > 0, i <= cur),
+              if (i == cur)
+                Container(
+                  width: _bubble,
+                  height: _bubble,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Brand.orangeDeep,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Icon(p.operator.isTrain ? Icons.train : Icons.directions_bus, size: 16, color: Colors.white),
+                )
+              else
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i < cur ? accent : (i == n - 1 ? (dark ? Colors.white : c.card) : c.muted),
+                    border: i == n - 1 && i > cur ? Border.all(color: c.muted, width: 2) : null,
+                  ),
+                ),
+              half(i < n - 1, i < cur),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Text(
+            p.stops[i].name,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: labelStyle?.copyWith(
+              color: i == cur ? c.accentText : (i < cur ? c.muted : null),
+              fontWeight: i == cur ? FontWeight.w700 : null,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // The stops left out. The bus is always before them, so they are never travelled.
+    Widget gap(int hidden) {
+      final word = p.operator.stopWord;
+      return Column(
+        children: [
+          SizedBox(
+            height: _bubble,
+            child: Row(
+              children: [
+                half(true, false),
+                Icon(Icons.more_horiz, size: 18, color: c.muted),
+                half(true, false),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '+$hidden ${hidden == 1 ? word : '${word}s'}',
+            textAlign: TextAlign.center,
+            style: labelStyle?.copyWith(color: c.muted),
+          ),
+        ],
+      );
+    }
 
     return Semantics(
       label: switch (p.phase) {
@@ -74,62 +163,9 @@ class StopRail extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = start; i < end; i++)
-            Expanded(
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: _bubble,
-                    child: Row(
-                      children: [
-                        half(i > 0, i <= cur),
-                        if (i == cur)
-                          Container(
-                            width: _bubble,
-                            height: _bubble,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Brand.orangeDeep,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: Icon(
-                              p.operator.isTrain ? Icons.train : Icons.directions_bus,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: i < cur ? accent : (i == n - 1 ? (dark ? Colors.white : c.card) : c.muted),
-                              border: i == n - 1 && i > cur ? Border.all(color: c.muted, width: 2) : null,
-                            ),
-                          ),
-                        half(i < n - 1, i < cur),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Text(
-                      p.stops[i].name,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.text.labelSmall?.copyWith(
-                        fontSize: 11,
-                        color: i == cur ? c.accentText : (i < cur ? c.muted : null),
-                        fontWeight: i == cur ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          for (final (k, i) in slots.indexed)
+            // A gap's size is the stops between the one before it and the destination.
+            Expanded(child: i == null ? gap(n - 2 - slots[k - 1]!) : stop(i)),
         ],
       ),
     );

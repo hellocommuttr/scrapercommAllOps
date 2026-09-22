@@ -2221,6 +2221,24 @@ class $SavedJourneysTable extends SavedJourneys with TableInfo<$SavedJourneysTab
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _boardLabelMeta = const VerificationMeta('boardLabel');
+  @override
+  late final GeneratedColumn<String> boardLabel = GeneratedColumn<String>(
+    'board_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _alightLabelMeta = const VerificationMeta('alightLabel');
+  @override
+  late final GeneratedColumn<String> alightLabel = GeneratedColumn<String>(
+    'alight_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
@@ -2267,6 +2285,8 @@ class $SavedJourneysTable extends SavedJourneys with TableInfo<$SavedJourneysTab
     status,
     reminderLeadMinutes,
     groupId,
+    boardLabel,
+    alightLabel,
     createdAt,
     completedAt,
   ];
@@ -2403,6 +2423,12 @@ class $SavedJourneysTable extends SavedJourneys with TableInfo<$SavedJourneysTab
     if (data.containsKey('group_id')) {
       context.handle(_groupIdMeta, groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta));
     }
+    if (data.containsKey('board_label')) {
+      context.handle(_boardLabelMeta, boardLabel.isAcceptableOrUnknown(data['board_label']!, _boardLabelMeta));
+    }
+    if (data.containsKey('alight_label')) {
+      context.handle(_alightLabelMeta, alightLabel.isAcceptableOrUnknown(data['alight_label']!, _alightLabelMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     } else if (isInserting) {
@@ -2452,6 +2478,8 @@ class $SavedJourneysTable extends SavedJourneys with TableInfo<$SavedJourneysTab
         data['${effectivePrefix}reminder_lead_minutes'],
       ),
       groupId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}group_id']),
+      boardLabel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}board_label']),
+      alightLabel: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}alight_label']),
       createdAt: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
       completedAt: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}completed_at']),
     );
@@ -2490,6 +2518,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
   final String status;
   final int? reminderLeadMinutes;
   final String? groupId;
+  final String? boardLabel;
+  final String? alightLabel;
   final int createdAt;
   final int? completedAt;
   const SavedJourney({
@@ -2519,6 +2549,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
     required this.status,
     this.reminderLeadMinutes,
     this.groupId,
+    this.boardLabel,
+    this.alightLabel,
     required this.createdAt,
     this.completedAt,
   });
@@ -2561,6 +2593,12 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
     if (!nullToAbsent || groupId != null) {
       map['group_id'] = Variable<String>(groupId);
     }
+    if (!nullToAbsent || boardLabel != null) {
+      map['board_label'] = Variable<String>(boardLabel);
+    }
+    if (!nullToAbsent || alightLabel != null) {
+      map['alight_label'] = Variable<String>(alightLabel);
+    }
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<int>(completedAt);
@@ -2598,6 +2636,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
           ? const Value.absent()
           : Value(reminderLeadMinutes),
       groupId: groupId == null && nullToAbsent ? const Value.absent() : Value(groupId),
+      boardLabel: boardLabel == null && nullToAbsent ? const Value.absent() : Value(boardLabel),
+      alightLabel: alightLabel == null && nullToAbsent ? const Value.absent() : Value(alightLabel),
       createdAt: Value(createdAt),
       completedAt: completedAt == null && nullToAbsent ? const Value.absent() : Value(completedAt),
     );
@@ -2632,6 +2672,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
       status: serializer.fromJson<String>(json['status']),
       reminderLeadMinutes: serializer.fromJson<int?>(json['reminderLeadMinutes']),
       groupId: serializer.fromJson<String?>(json['groupId']),
+      boardLabel: serializer.fromJson<String?>(json['boardLabel']),
+      alightLabel: serializer.fromJson<String?>(json['alightLabel']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       completedAt: serializer.fromJson<int?>(json['completedAt']),
     );
@@ -2666,6 +2708,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
       'status': serializer.toJson<String>(status),
       'reminderLeadMinutes': serializer.toJson<int?>(reminderLeadMinutes),
       'groupId': serializer.toJson<String?>(groupId),
+      'boardLabel': serializer.toJson<String?>(boardLabel),
+      'alightLabel': serializer.toJson<String?>(alightLabel),
       'createdAt': serializer.toJson<int>(createdAt),
       'completedAt': serializer.toJson<int?>(completedAt),
     };
@@ -2698,6 +2742,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
     String? status,
     Value<int?> reminderLeadMinutes = const Value.absent(),
     Value<String?> groupId = const Value.absent(),
+    Value<String?> boardLabel = const Value.absent(),
+    Value<String?> alightLabel = const Value.absent(),
     int? createdAt,
     Value<int?> completedAt = const Value.absent(),
   }) => SavedJourney(
@@ -2727,6 +2773,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
     status: status ?? this.status,
     reminderLeadMinutes: reminderLeadMinutes.present ? reminderLeadMinutes.value : this.reminderLeadMinutes,
     groupId: groupId.present ? groupId.value : this.groupId,
+    boardLabel: boardLabel.present ? boardLabel.value : this.boardLabel,
+    alightLabel: alightLabel.present ? alightLabel.value : this.alightLabel,
     createdAt: createdAt ?? this.createdAt,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
   );
@@ -2758,6 +2806,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
       status: data.status.present ? data.status.value : this.status,
       reminderLeadMinutes: data.reminderLeadMinutes.present ? data.reminderLeadMinutes.value : this.reminderLeadMinutes,
       groupId: data.groupId.present ? data.groupId.value : this.groupId,
+      boardLabel: data.boardLabel.present ? data.boardLabel.value : this.boardLabel,
+      alightLabel: data.alightLabel.present ? data.alightLabel.value : this.alightLabel,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       completedAt: data.completedAt.present ? data.completedAt.value : this.completedAt,
     );
@@ -2792,6 +2842,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
           ..write('status: $status, ')
           ..write('reminderLeadMinutes: $reminderLeadMinutes, ')
           ..write('groupId: $groupId, ')
+          ..write('boardLabel: $boardLabel, ')
+          ..write('alightLabel: $alightLabel, ')
           ..write('createdAt: $createdAt, ')
           ..write('completedAt: $completedAt')
           ..write(')'))
@@ -2826,6 +2878,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
     status,
     reminderLeadMinutes,
     groupId,
+    boardLabel,
+    alightLabel,
     createdAt,
     completedAt,
   ]);
@@ -2859,6 +2913,8 @@ class SavedJourney extends DataClass implements Insertable<SavedJourney> {
           other.status == this.status &&
           other.reminderLeadMinutes == this.reminderLeadMinutes &&
           other.groupId == this.groupId &&
+          other.boardLabel == this.boardLabel &&
+          other.alightLabel == this.alightLabel &&
           other.createdAt == this.createdAt &&
           other.completedAt == this.completedAt);
 }
@@ -2890,6 +2946,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
   final Value<String> status;
   final Value<int?> reminderLeadMinutes;
   final Value<String?> groupId;
+  final Value<String?> boardLabel;
+  final Value<String?> alightLabel;
   final Value<int> createdAt;
   final Value<int?> completedAt;
   final Value<int> rowid;
@@ -2920,6 +2978,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
     this.status = const Value.absent(),
     this.reminderLeadMinutes = const Value.absent(),
     this.groupId = const Value.absent(),
+    this.boardLabel = const Value.absent(),
+    this.alightLabel = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.completedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2951,6 +3011,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
     this.status = const Value.absent(),
     this.reminderLeadMinutes = const Value.absent(),
     this.groupId = const Value.absent(),
+    this.boardLabel = const Value.absent(),
+    this.alightLabel = const Value.absent(),
     required int createdAt,
     this.completedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2999,6 +3061,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
     Expression<String>? status,
     Expression<int>? reminderLeadMinutes,
     Expression<String>? groupId,
+    Expression<String>? boardLabel,
+    Expression<String>? alightLabel,
     Expression<int>? createdAt,
     Expression<int>? completedAt,
     Expression<int>? rowid,
@@ -3030,6 +3094,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
       if (status != null) 'status': status,
       if (reminderLeadMinutes != null) 'reminder_lead_minutes': reminderLeadMinutes,
       if (groupId != null) 'group_id': groupId,
+      if (boardLabel != null) 'board_label': boardLabel,
+      if (alightLabel != null) 'alight_label': alightLabel,
       if (createdAt != null) 'created_at': createdAt,
       if (completedAt != null) 'completed_at': completedAt,
       if (rowid != null) 'rowid': rowid,
@@ -3063,6 +3129,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
     Value<String>? status,
     Value<int?>? reminderLeadMinutes,
     Value<String?>? groupId,
+    Value<String?>? boardLabel,
+    Value<String?>? alightLabel,
     Value<int>? createdAt,
     Value<int?>? completedAt,
     Value<int>? rowid,
@@ -3094,6 +3162,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
       status: status ?? this.status,
       reminderLeadMinutes: reminderLeadMinutes ?? this.reminderLeadMinutes,
       groupId: groupId ?? this.groupId,
+      boardLabel: boardLabel ?? this.boardLabel,
+      alightLabel: alightLabel ?? this.alightLabel,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
       rowid: rowid ?? this.rowid,
@@ -3181,6 +3251,12 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
     if (groupId.present) {
       map['group_id'] = Variable<String>(groupId.value);
     }
+    if (boardLabel.present) {
+      map['board_label'] = Variable<String>(boardLabel.value);
+    }
+    if (alightLabel.present) {
+      map['alight_label'] = Variable<String>(alightLabel.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -3222,6 +3298,8 @@ class SavedJourneysCompanion extends UpdateCompanion<SavedJourney> {
           ..write('status: $status, ')
           ..write('reminderLeadMinutes: $reminderLeadMinutes, ')
           ..write('groupId: $groupId, ')
+          ..write('boardLabel: $boardLabel, ')
+          ..write('alightLabel: $alightLabel, ')
           ..write('createdAt: $createdAt, ')
           ..write('completedAt: $completedAt, ')
           ..write('rowid: $rowid')
@@ -5666,6 +5744,8 @@ typedef $$SavedJourneysTableCreateCompanionBuilder =
       Value<String> status,
       Value<int?> reminderLeadMinutes,
       Value<String?> groupId,
+      Value<String?> boardLabel,
+      Value<String?> alightLabel,
       required int createdAt,
       Value<int?> completedAt,
       Value<int> rowid,
@@ -5698,6 +5778,8 @@ typedef $$SavedJourneysTableUpdateCompanionBuilder =
       Value<String> status,
       Value<int?> reminderLeadMinutes,
       Value<String?> groupId,
+      Value<String?> boardLabel,
+      Value<String?> alightLabel,
       Value<int> createdAt,
       Value<int?> completedAt,
       Value<int> rowid,
@@ -5786,6 +5868,12 @@ class $$SavedJourneysTableFilterComposer extends Composer<_$AppDatabase, $SavedJ
 
   ColumnFilters<String> get groupId =>
       $composableBuilder(column: $table.groupId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get boardLabel =>
+      $composableBuilder(column: $table.boardLabel, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get alightLabel =>
+      $composableBuilder(column: $table.alightLabel, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -5879,6 +5967,12 @@ class $$SavedJourneysTableOrderingComposer extends Composer<_$AppDatabase, $Save
   ColumnOrderings<String> get groupId =>
       $composableBuilder(column: $table.groupId, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get boardLabel =>
+      $composableBuilder(column: $table.boardLabel, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get alightLabel =>
+      $composableBuilder(column: $table.alightLabel, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -5958,6 +6052,11 @@ class $$SavedJourneysTableAnnotationComposer extends Composer<_$AppDatabase, $Sa
 
   GeneratedColumn<String> get groupId => $composableBuilder(column: $table.groupId, builder: (column) => column);
 
+  GeneratedColumn<String> get boardLabel => $composableBuilder(column: $table.boardLabel, builder: (column) => column);
+
+  GeneratedColumn<String> get alightLabel =>
+      $composableBuilder(column: $table.alightLabel, builder: (column) => column);
+
   GeneratedColumn<int> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<int> get completedAt => $composableBuilder(column: $table.completedAt, builder: (column) => column);
@@ -6014,6 +6113,8 @@ class $$SavedJourneysTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int?> reminderLeadMinutes = const Value.absent(),
                 Value<String?> groupId = const Value.absent(),
+                Value<String?> boardLabel = const Value.absent(),
+                Value<String?> alightLabel = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> completedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6044,6 +6145,8 @@ class $$SavedJourneysTableTableManager
                 status: status,
                 reminderLeadMinutes: reminderLeadMinutes,
                 groupId: groupId,
+                boardLabel: boardLabel,
+                alightLabel: alightLabel,
                 createdAt: createdAt,
                 completedAt: completedAt,
                 rowid: rowid,
@@ -6076,6 +6179,8 @@ class $$SavedJourneysTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int?> reminderLeadMinutes = const Value.absent(),
                 Value<String?> groupId = const Value.absent(),
+                Value<String?> boardLabel = const Value.absent(),
+                Value<String?> alightLabel = const Value.absent(),
                 required int createdAt,
                 Value<int?> completedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6106,6 +6211,8 @@ class $$SavedJourneysTableTableManager
                 status: status,
                 reminderLeadMinutes: reminderLeadMinutes,
                 groupId: groupId,
+                boardLabel: boardLabel,
+                alightLabel: alightLabel,
                 createdAt: createdAt,
                 completedAt: completedAt,
                 rowid: rowid,

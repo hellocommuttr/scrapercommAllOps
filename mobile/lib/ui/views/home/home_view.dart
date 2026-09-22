@@ -69,7 +69,11 @@ class HomeView extends StackedView<HomeViewModel> {
         ),
       ];
     }
-    final rides = vm.showAll ? o.rides : o.rides.take(3).toList();
+    // The best of each operator, until asked: a screen of near-identical cards buries the
+    // answer, but one card per operator lets a rider compare bus, MyCiTi and train.
+    final headline = o.bestPerOperator;
+    final rides = vm.showAll ? o.rides : headline;
+    final more = o.rides.length - headline.length;
     return [
       header,
       Padding(
@@ -82,16 +86,11 @@ class HomeView extends StackedView<HomeViewModel> {
               RideCard(ride: r, minutesUntil: vm.minutesUntil(r), onTap: () => vm.openRide(r)),
               const SizedBox(height: 10),
             ],
-            if (o.rides.length > rides.length)
-              AppCard(
-                onTap: vm.viewMore,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Row(
-                  children: [
-                    const Expanded(child: Text('View more routes', style: TextStyle(fontSize: 16))),
-                    Icon(Icons.chevron_right, color: context.colors.muted),
-                  ],
-                ),
+            if (more > 0)
+              _MoreButton(
+                label: vm.showAll ? 'Show fewer' : 'View $more more ${more == 1 ? 'route' : 'routes'}',
+                expanded: vm.showAll,
+                onTap: vm.toggleShowAll,
               ),
             ..._emptyStates(vm, o),
             if (o.connections.isNotEmpty) ..._connections(context, vm, o),
@@ -135,7 +134,7 @@ class HomeView extends StackedView<HomeViewModel> {
   }
 
   List<Widget> _emptyStates(HomeViewModel vm, JourneySearchOutcome o) {
-    if (o.rides.isNotEmpty || o.connections.isNotEmpty) return const [];
+    if (o.rides.isNotEmpty) return const [];
     final today = const SastClock().today;
     if (o.allDay.isNotEmpty) {
       return [
@@ -161,6 +160,22 @@ class HomeView extends StackedView<HomeViewModel> {
         ),
       ];
     }
+    // "Nothing connects these two" would be a lie with a trip on screen that does.
+    if (o.connections.isNotEmpty) return const [];
+    // Nor when trips with a change do run that day, only not at the time chosen.
+    final day = o.allDayConnections;
+    if (day.isNotEmpty) {
+      return [
+        EmptyState(
+          icon: Icons.bedtime_outlined,
+          title: 'No more trips with a change ${o.date == today ? 'today' : 'at that time'}',
+          message:
+              'The first leaves at ${day.first.legs.first.boardTime} and the last at ${day.last.legs.first.boardTime}.',
+          actionLabel: 'See the whole day',
+          onAction: vm.setAllDay,
+        ),
+      ];
+    }
     return [
       EmptyState(
         icon: Icons.wrong_location_outlined,
@@ -174,10 +189,36 @@ class HomeView extends StackedView<HomeViewModel> {
     ];
   }
 
+  /// "2 buses", said by the journey rather than by the chosen filter: a trip made of two
+  /// trains read "2 buses" whenever the rider had chosen All, because the fallback for
+  /// "no mode chosen" is bus. The journey knows what it is.
+  static String _legsPhrase(Connection con) {
+    final kinds = {for (final l in con.legs) l.operator.kind};
+    final word = kinds.length == 1 ? (kinds.first == 'train' ? 'trains' : 'buses') : 'rides';
+    return '${con.legs.length} $word';
+  }
+
   List<Widget> _connections(BuildContext context, HomeViewModel vm, JourneySearchOutcome o) {
     final c = context.colors;
+    final first = o.connections.first;
+    final changeAt = first.changeAt.map(titleCase).join(' then ');
+    final shown = vm.showAllConnections ? o.connections : o.connections.take(1);
+    final weekday = dayTypeFor(o.date) == DayType.weekday;
+    final more = o.connections.length - 1;
     return [
-      for (final con in o.connections.take(6)) ...[
+      const SizedBox(height: 2),
+      SectionHeader('Journeys with a change', padding: const EdgeInsets.fromLTRB(0, 18, 0, 10)),
+      InfoBanner(
+        tone: o.hasAnyDirectService ? BannerTone.info : BannerTone.warning,
+        icon: o.hasAnyDirectService ? Icons.alt_route : Icons.warning_amber_outlined,
+        message: o.hasAnyDirectService
+            ? 'You can also get from ${titleCase(o.from.name)} to ${titleCase(o.to.name)} by taking '
+                  '${_legsPhrase(first)}, changing at $changeAt.'
+            : 'No direct ${o.vehicle} from ${titleCase(o.from.name)} to ${titleCase(o.to.name)}. You can still '
+                  'get there by taking ${_legsPhrase(first)}, changing at $changeAt.',
+      ),
+      const SizedBox(height: 10),
+      for (final con in shown) ...[
         AppCard(
           onTap: () => vm.openConnection(con),
           child: Row(
@@ -203,18 +244,42 @@ class HomeView extends StackedView<HomeViewModel> {
                       style: TextStyle(color: c.muted),
                     ),
                     Text('1 change at ${con.changeAt.map(titleCase).join(', ')}', style: TextStyle(color: c.muted)),
+                    // What separates one of these from the next is the wait at the change,
+                    // so it belongs on the card and not only inside it.
+                    if (con.totalMinutes != null || con.waitMinutes != null)
+                      Text(
+                        [
+                          if (con.totalMinutes != null) formatDuration(con.totalMinutes!),
+                          if (con.waitMinutes != null) '${formatDuration(con.waitMinutes!)} waiting',
+                        ].join(' · '),
+                        style: TextStyle(color: (con.waitMinutes ?? 0) > 60 ? c.accentText : c.muted, fontSize: 12),
+                      ),
+                    // What each ride costs, so the total beside it can be checked.
+                    if (con.legFaresOn(weekday: weekday) case final legFares?)
+                      Text(
+                        con.oneTicket ? '$legFares on their own' : legFares,
+                        style: TextStyle(color: c.muted, fontSize: 12),
+                      ),
                   ],
                 ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  if (con.fare?.cashCents != null) FareLabel(con.fare),
+                  if (con.priceOn(weekday: weekday) case final price?) ...[
+                    FareLabel(con.fare, cents: price),
+                    Text(
+                      con.fare?.isMyciti == true ? 'one fare' : (con.oneTicket ? 'one ticket' : 'total'),
+                      style: TextStyle(color: c.muted, fontSize: 11),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Text(
                     'Departs ${con.legs.first.boardTime}',
                     style: TextStyle(color: c.accentText, fontWeight: FontWeight.w600, fontSize: 12),
                   ),
+                  if (DayType.fromApi(con.dayType) case final day?)
+                    Text(day.covers, style: TextStyle(color: c.muted, fontSize: 12)),
                 ],
               ),
               Icon(Icons.chevron_right, color: c.muted),
@@ -223,6 +288,12 @@ class HomeView extends StackedView<HomeViewModel> {
         ),
         const SizedBox(height: 10),
       ],
+      if (more > 0)
+        _MoreButton(
+          label: vm.showAllConnections ? 'Show fewer' : 'View $more more ${more == 1 ? 'way' : 'ways'} with a change',
+          expanded: vm.showAllConnections,
+          onTap: vm.toggleShowAllConnections,
+        ),
     ];
   }
 
@@ -242,6 +313,30 @@ class HomeView extends StackedView<HomeViewModel> {
 }
 
 String _cap(String s) => s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
+/// "View 4 more routes" under the one card shown, and "Show fewer" once opened.
+class _MoreButton extends StatelessWidget {
+  const _MoreButton({required this.label, required this.expanded, required this.onTap});
+
+  final String label;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 15))),
+          Icon(expanded ? Icons.expand_less : Icons.expand_more, color: context.colors.muted),
+        ],
+      ),
+    ),
+  );
+}
 
 /// Round avatar: the profile photo if there is one, else an outline person.
 class ProfileAvatar extends StatelessWidget {
@@ -448,12 +543,14 @@ class _WhenRow extends StatelessWidget {
             tooltip: 'When',
             onSelected: (v) => switch (v) {
               'now' => vm.setWhen(),
+              'allDay' => vm.setAllDay(),
               'depart' => _pick(context, arrive: false),
               'arrive' => _pick(context, arrive: true),
               _ => null,
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'now', child: Text('Depart now')),
+              PopupMenuItem(value: 'allDay', child: Text('All day')),
               PopupMenuItem(value: 'depart', child: Text('Depart at…')),
               PopupMenuItem(value: 'arrive', child: Text('Arrive by…')),
             ],

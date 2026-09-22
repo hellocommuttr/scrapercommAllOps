@@ -37,14 +37,17 @@ class RideCard extends StatelessWidget {
     final accent = c.accentText;
     final op = ride.operator;
     final duration = ride.durationMinutes;
-    final cash = ride.fare?.cashCents;
+    final cash = ride.priceCents;
     final departs = departsLabel(minutesUntil, ride.boardTime);
+    final day = DayType.fromApi(ride.option.dayType);
     final from = titleCase(ride.option.boardLabel.isEmpty ? ride.from.name : ride.option.boardLabel);
     final to = titleCase(ride.option.alightLabel.isEmpty ? ride.to.name : ride.option.alightLabel);
     final semantics =
         '${op.name} ${op.isTrain ? '${ride.option.routeNumber} line' : 'route ${ride.option.routeNumber}'}, '
         '$from to $to, ${stopsLabel(ride)}, ${duration != null ? formatDuration(duration) : ''}, $departs'
+        '${day != null ? ', ${day.covers} timetable' : ''}'
         '${ride.departure.boardApprox ? ', estimated time' : ''}'
+        '${ride.option.unofficialStop ? ', ${unofficialStopAdvice(ride.option)}' : ''}'
         '${ride.noteText != null ? ', ${ride.noteText}' : ''}'
         '${cash != null ? ', ${formatRands(cash)}' : ''}';
     return Semantics(
@@ -102,6 +105,29 @@ class RideCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: context.text.bodyMedium?.copyWith(color: c.muted),
                   ),
+                  // A point on the road is where the bus passes, not where it is sure to
+                  // stop; say so before the rider picks it. The trip screen gives the detail.
+                  if (ride.option.unofficialStop) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, size: 14, color: c.accentText),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            switch (ride.option.boardBetween) {
+                              final s? => 'Not an official stop · safer at ${titleCase(s.$1)}',
+                              null => 'Gets off at an unofficial stop',
+                            },
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.bodySmall?.copyWith(color: c.accentText),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -130,6 +156,14 @@ class RideCard extends StatelessWidget {
                     textAlign: TextAlign.end,
                     style: context.text.bodySmall?.copyWith(color: accent, fontWeight: FontWeight.w600),
                   ),
+                  // Which timetable the time is from: 05:50 midweek and 05:50 on a Saturday
+                  // are different buses.
+                  if (day != null)
+                    Text(
+                      day.covers,
+                      textAlign: TextAlign.end,
+                      style: context.text.bodySmall?.copyWith(color: c.muted),
+                    ),
                 ],
               ),
             ),

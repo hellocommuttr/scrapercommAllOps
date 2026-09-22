@@ -97,7 +97,11 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: Text('${vm.boardTime} → ${vm.arriveTime ?? '—'}', style: context.text.headlineSmall),
+                        // An arrival that is only the same floor as boarding is not a time.
+                        child: Text(
+                          '${vm.boardTime} → ${vm.duration == null && vm.arriveApprox ? '—' : vm.arriveTime ?? '—'}',
+                          style: context.text.headlineSmall,
+                        ),
                       ),
                       if (vm.duration != null)
                         Container(
@@ -124,6 +128,10 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
                 ],
               ),
             ),
+            if (unofficialStopAdviceFor(vm.boardLabel, vm.alightLabel, vm.operator) case final advice?) ...[
+              const SizedBox(height: 12),
+              InfoBanner(tone: BannerTone.warning, icon: Icons.warning_amber_rounded, message: advice),
+            ],
             const SizedBox(height: 12),
             ScheduledDisclaimer(
               operator: vm.operator,
@@ -156,13 +164,40 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
               )
             else if (stops.isEmpty)
               const LoadingBlock()
-            else
+            else ...[
+              if (vm.wholeTrip != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'The whole ${vm.operator.vehicle} trip. You ride the highlighted part.',
+                    style: context.text.bodySmall?.copyWith(color: c.muted),
+                  ),
+                ),
               AppCard(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  children: [for (final (i, s) in stops.indexed) _StopRow(stop: s, index: i, count: stops.length)],
+                child: Builder(
+                  builder: (context) {
+                    final rows = tripRows(
+                      stops: vm.wholeTrip?.stops ?? stops,
+                      fromSeq: vm.fromSeq,
+                      toSeq: vm.toSeq,
+                      boardLabel: vm.boardLabel,
+                      alightLabel: vm.alightLabel,
+                      boardRaw: vm.boardRaw,
+                      arriveRaw: vm.arriveRaw,
+                      boardApprox: vm.boardApprox,
+                      arriveApprox: vm.arriveApprox,
+                    );
+                    return Column(
+                      children: [
+                        for (final (i, r) in rows.indexed)
+                          _StopRow(row: r, index: i, count: rows.length, vehicle: vm.operator.vehicle),
+                      ],
+                    );
+                  },
                 ),
               ),
+            ],
             if (located.length >= 2 || vm.roadPath.length >= 2) ...[
               const SectionHeader('Map', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),
               RouteMap(
@@ -191,7 +226,11 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
               ),
             ],
             const SectionHeader('Fare', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),
-            _FareCard(fare: vm.fare, operator: vm.operator),
+            _FareCard(
+              fare: vm.fare,
+              operator: vm.operator,
+              peak: isMycitiPeak(weekday: dayTypeFor(vm.date) == DayType.weekday, boardMinutes: vm.boardMinutes),
+            ),
             const SectionHeader('About this timetable', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),
             AppCard(
               child: Column(
@@ -301,45 +340,136 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
   void onViewModelReady(TripDetailViewModel viewModel) => viewModel.init();
 }
 
-class _StopRow extends StatelessWidget {
-  const _StopRow({required this.stop, required this.index, required this.count});
+enum StopRole { board, alight, ride, before, after }
 
-  final TripStop stop;
+/// One line of the stop list: a timetable stop, or the rider's own point on the road.
+class TripRow {
+  const TripRow({required this.name, required this.time, required this.approx, required this.role, this.pin = false});
+
+  final String name;
+
+  /// What to print for the time: a published time, the departure's own estimate at the
+  /// rider's two ends, or empty where the timetable gives none.
+  final String time;
+  final bool approx;
+  final StopRole role;
+
+  /// The rider's own point, where the timetable names no stop.
+  final bool pin;
+}
+
+/// The whole run with the rider's part marked, as the web app lays it out.
+///
+/// A place on the road between two stops is the rider's own point and goes in between
+/// them; otherwise the stops at the ride's two sequence numbers are where they get on and
+/// off. Everything before boarding and after alighting is the vehicle's own trip, shown so
+/// a rider can see where it comes from and where it ends.
+List<TripRow> tripRows({
+  required List<TripStop> stops,
+  required int fromSeq,
+  required int toSeq,
+  required String boardLabel,
+  required String alightLabel,
+  required String boardRaw,
+  required String arriveRaw,
+  required bool boardApprox,
+  required bool arriveApprox,
+}) {
+  final boardPin = boardLabel.startsWith('between ');
+  final alightPin = alightLabel.startsWith('between ');
+  final rows = <TripRow>[];
+  var boarded = false;
+  var alighted = false;
+  for (final (i, st) in stops.indexed) {
+    if (boardPin && !boarded && st.stopSequence >= fromSeq) {
+      rows.add(TripRow(name: boardLabel, time: boardRaw, approx: boardApprox, role: StopRole.board, pin: true));
+      boarded = true;
+    }
+    final timed = st.cellType != 'VIA' && st.departureTime != null;
+    final StopRole role;
+    if (!boardPin && !boarded && st.stopSequence == fromSeq) {
+      role = StopRole.board;
+      boarded = true;
+    } else if (!alightPin && boarded && !alighted && st.stopSequence == toSeq) {
+      role = StopRole.alight;
+      alighted = true;
+    } else if (!boarded) {
+      role = StopRole.before;
+    } else if (alighted) {
+      role = StopRole.after;
+    } else {
+      role = StopRole.ride;
+    }
+    // At the rider's own two stops a via shows the departure's estimate, not a blank: the
+    // card above has just said when they get on and off.
+    final chosen = role == StopRole.board ? boardRaw : (role == StopRole.alight ? arriveRaw : null);
+    rows.add(TripRow(name: st.name, time: timed ? st.departureTime! : (chosen ?? ''), approx: !timed, role: role));
+    final next = i + 1 < stops.length ? stops[i + 1] : null;
+    if (alightPin && boarded && !alighted && st.stopSequence <= toSeq && (next == null || next.stopSequence > toSeq)) {
+      rows.add(TripRow(name: alightLabel, time: arriveRaw, approx: arriveApprox, role: StopRole.alight, pin: true));
+      alighted = true;
+    }
+  }
+  return rows;
+}
+
+class _StopRow extends StatelessWidget {
+  const _StopRow({required this.row, required this.index, required this.count, required this.vehicle});
+
+  final TripRow row;
   final int index;
   final int count;
+  final String vehicle;
+
+  /// "16:30" from "16:30:00"; the rider's own ends keep their words ("from 14:50").
+  static String _clock(String t) => t.replaceFirstMapped(RegExp(r'^(\d\d:\d\d):\d\d$'), (m) => m[1]!);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final accent = Theme.of(context).colorScheme.primary;
-    final isEnd = index == 0 || index == count - 1;
-    final code = Footnotes.codeOf(stop.rawValue);
+    final mine = row.role == StopRole.board || row.role == StopRole.alight;
+    final aside = row.role == StopRole.before || row.role == StopRole.after;
+    final notes = <String>[];
     final String time;
-    final String? note;
-    if (stop.cellType == 'VIA' || stop.departureTime == null) {
+    if (row.time.isEmpty || row.time == 'via') {
       time = '—';
-      note = 'time not published';
+      notes.add('time not published');
     } else {
-      time = stop.departureTime!;
-      note = code == null ? null : 'footnote $code';
+      time = _clock(row.time);
+      final code = row.approx ? null : Footnotes.codeOf(row.time);
+      if (code != null) notes.add('footnote $code');
     }
+    if (row.pin) notes.add('your stop · not an official stop, the $vehicle may not stop here');
+    final tag = switch (row.role) {
+      StopRole.board => 'get on here',
+      StopRole.alight => 'get off here',
+      StopRole.before when index == 0 => '$vehicle starts',
+      StopRole.after when index == count - 1 => 'terminus',
+      _ => null,
+    };
+    // Solid along the ride, faint where the rider is not on board.
+    Color line(bool riding) => riding ? accent : accent.withValues(alpha: 0.25);
+    final ridingAbove = row.role == StopRole.ride || row.role == StopRole.alight;
+    final ridingBelow = row.role == StopRole.ride || row.role == StopRole.board;
+    final faded = aside ? c.muted : null;
     return Semantics(
-      label: '${titleCase(stop.name)}, ${note ?? 'scheduled $time'}',
+      label: '${titleCase(row.name)}${tag == null ? '' : ', $tag'}, ${time == '—' ? 'time not published' : time}',
       excludeSemantics: true,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 64,
+              width: 96,
               child: Padding(
                 padding: const EdgeInsets.only(top: 10, right: 8),
                 child: Text(
                   time,
                   textAlign: TextAlign.right,
                   style: TextStyle(
-                    fontWeight: isEnd ? FontWeight.w700 : FontWeight.w400,
-                    color: time == '—' ? c.muted : null,
+                    fontWeight: mine ? FontWeight.w700 : FontWeight.w400,
+                    color: time == '—' ? c.muted : faded,
                   ),
                 ),
               ),
@@ -349,22 +479,19 @@ class _StopRow extends StatelessWidget {
               child: Column(
                 children: [
                   Expanded(
-                    child: Container(width: 2, color: index == 0 ? Colors.transparent : accent.withValues(alpha: 0.6)),
+                    child: Container(width: 2, color: index == 0 ? Colors.transparent : line(ridingAbove)),
                   ),
                   Container(
-                    width: isEnd ? 14 : 10,
-                    height: isEnd ? 14 : 10,
+                    width: mine ? 14 : 10,
+                    height: mine ? 14 : 10,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: index == 0 ? accent : Theme.of(context).scaffoldBackgroundColor,
-                      border: Border.all(color: accent, width: 2),
+                      color: row.role == StopRole.board ? accent : Theme.of(context).scaffoldBackgroundColor,
+                      border: Border.all(color: aside ? accent.withValues(alpha: 0.35) : accent, width: 2),
                     ),
                   ),
                   Expanded(
-                    child: Container(
-                      width: 2,
-                      color: index == count - 1 ? Colors.transparent : accent.withValues(alpha: 0.6),
-                    ),
+                    child: Container(width: 2, color: index == count - 1 ? Colors.transparent : line(ridingBelow)),
                   ),
                 ],
               ),
@@ -376,10 +503,31 @@ class _StopRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(titleCase(stop.name), style: TextStyle(fontWeight: isEnd ? FontWeight.w600 : FontWeight.w400)),
-                    if (note != null)
+                    Wrap(
+                      spacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          titleCase(row.name),
+                          style: TextStyle(fontWeight: mine ? FontWeight.w600 : FontWeight.w400, color: faded),
+                        ),
+                        if (tag != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: mine ? accent.withValues(alpha: 0.15) : c.infoSurface,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(fontSize: 11, color: mine ? accent : c.muted, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (notes.isNotEmpty)
                       Text(
-                        note,
+                        notes.join(' · '),
                         style: context.text.bodySmall?.copyWith(color: c.muted, fontStyle: FontStyle.italic),
                       ),
                   ],
@@ -393,13 +541,84 @@ class _StopRow extends StatelessWidget {
   }
 }
 
+/// MyCiTi: the fare that applies when this bus leaves, both fares, and the passes.
+Widget _mycitiFare(BuildContext context, Fare f, bool peak, String? since, String? note) {
+  final c = context.colors;
+  final passes = [
+    ('1-day pass', f.dayPassCents),
+    ('3-day pass', f.threeDayPassCents),
+    ('7-day pass', f.weeklyCents),
+    ('Monthly pass', f.monthlyCents),
+  ].where((p) => p.$2 != null).toList();
+  return AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(formatRands(peak ? f.cashCents! : f.saverCents!), style: context.text.headlineSmall),
+            const SizedBox(width: 8),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 3),
+              child: Text(peak ? 'peak, myconnect card' : 'saver, myconnect card', style: TextStyle(color: c.muted)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Expanded(child: Text('Peak · weekdays 06:45–08:00 and 16:15–17:30')),
+            Text(formatRands(f.cashCents!), style: const TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(
+            children: [
+              const Expanded(child: Text('Saver · all other times, weekends and public holidays')),
+              Text(formatRands(f.saverCents!), style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+        if (passes.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text('Unlimited travel passes', style: context.text.titleSmall),
+          for (final (label, cents) in passes)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  Expanded(child: Text('$label · any route, any time')),
+                  Text(formatRands(cents!), style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+        ],
+        const SizedBox(height: 8),
+        Text(
+          'MyCiTi takes no cash: tap a myconnect card on the way in and out. Cards are sold at MyCiTi '
+          'stations and selected retailers.',
+          style: context.text.bodySmall?.copyWith(color: c.muted),
+        ),
+        if (since != null)
+          Text('Fares from $since. Prices may change.', style: context.text.bodySmall?.copyWith(color: c.muted)),
+        if (note != null) Text(note, style: context.text.bodySmall?.copyWith(color: c.muted)),
+      ],
+    ),
+  );
+}
+
 /// The published cash fare, the rules behind it, and — for trains — the tickets sold at
 /// the station. Says plainly when nothing is published rather than showing a card price.
 class _FareCard extends StatelessWidget {
-  const _FareCard({required this.fare, required this.operator});
+  const _FareCard({required this.fare, required this.operator, this.peak = false});
 
   final Fare? fare;
   final OperatorRef operator;
+
+  /// This ride starts in MyCiTi's peak period, so the peak fare is the one it costs.
+  final bool peak;
 
   static const _months = [
     'January',
@@ -421,6 +640,9 @@ class _FareCard extends StatelessWidget {
     return d == null ? iso : '${_months[d.month - 1]} ${d.year}';
   }
 
+  Widget _myciti(BuildContext context, Fare f, String? since, String? note) =>
+      _mycitiFare(context, f, peak, since, note);
+
   String? _basis(Fare f) {
     final between = f.basisFrom != null && f.basisTo != null ? '${f.basisFrom} to ${f.basisTo}' : null;
     return switch (f.basis) {
@@ -431,6 +653,8 @@ class _FareCard extends StatelessWidget {
             ? null
             : 'No fare is published for your two stops, so this is the $between fare, the nearest published one '
                   'that covers your whole ride.',
+      'myciti_distance' =>
+        f.basisFrom == null ? null : 'MyCiTi fare band ${f.basisFrom}${f.basisTo != null ? ' (${f.basisTo})' : ''}.',
       'prasa_zone' =>
         f.basisFrom == null ? null : 'Metrorail fare zone ${f.basisFrom}${f.basisTo != null ? ' (${f.basisTo})' : ''}.',
       _ => between == null ? null : 'No fare is published for your two stops, so this is the fare for $between.',
@@ -449,12 +673,15 @@ class _FareCard extends StatelessWidget {
           'myciti' =>
             'MyCiTi fares are by distance and paid with a myconnect card. Commuttr does not have them yet — '
                 'see myciti.org.za.',
-          _ => 'Golden Arrow publishes no cash fare for this journey. Ask the driver, or see gabs.co.za.',
+          _ =>
+            'Golden Arrow does not publish its cash fares, so Commuttr does not show a price. Ask the driver, '
+                'or see gabs.co.za.',
         },
       );
     }
     final since = _since(f.cashEffectiveFrom);
     final note = _basis(f);
+    if (f.isMyciti && f.saverCents != null) return _myciti(context, f, since, note);
     final tickets = operator.isTrain
         ? [
             ('Return', 'there and back', f.returnCents),

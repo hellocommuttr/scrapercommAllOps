@@ -236,12 +236,32 @@ class _FiltersSheetState extends State<FiltersSheet> {
                   ),
                   const Divider(height: 32),
                   _heading('Travel time', 'When do you want to travel?', action: (day, _pickDate)),
+                  // The two choices most people want, one tap each; the boxes below are for
+                  // an exact time.
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Now'),
+                        selected: _f.departAfter == null && _f.arriveBy == null,
+                        onSelected: (_) =>
+                            setState(() => _f = _f.copyWith(departAfter: () => null, arriveBy: () => null)),
+                      ),
+                      ChoiceChip(
+                        label: const Text('All day'),
+                        selected: _f.departAfter == 0 && _f.arriveBy == null,
+                        onSelected: (_) => setState(() => _f = _f.copyWith(departAfter: () => 0, arriveBy: () => null)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: _DropBox(
                           label: 'Earliest departure',
-                          value: '$day, ${_f.departAfter == null ? 'now' : formatMinutes(_f.departAfter!)}',
+                          value:
+                              '$day, ${_f.departAfter == null ? 'now' : (_f.departAfter == 0 ? 'any time' : formatMinutes(_f.departAfter!))}',
                           onTap: () => _pickTime(arrival: false),
                         ),
                       ),

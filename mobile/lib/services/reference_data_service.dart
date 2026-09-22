@@ -123,13 +123,19 @@ class ReferenceDataService {
 
   Future<void> _replaceRoutes(List<Json> rows) async {
     if (rows.isEmpty) return;
-    // /api/routes does not say whose route it is (the seed does). Keep what we already
-    // know per id so a refresh never turns a train line into a bus route; a route we have
-    // not seen before is a train line when it is named like one ("NORTHERN LINE: ...").
-    final known = {for (final r in await _db.select(_db.busRoutes).get()) r.id: r.operatorCode};
+    // /api/routes says whose route it is, but an older API does not (the seed always does).
+    // Failing that, keep what we already know per id so a refresh never turns a train line
+    // into a bus route — then per name, because reloading an operator's timetables gives
+    // every route a new id but not a new name: all 47 MyCiTi routes came back under ids
+    // the app had never seen, were filed under Golden Arrow, and the MyCiTi list was empty.
+    // A route we have not seen at all is a train line when it is named like one.
+    final existing = await _db.select(_db.busRoutes).get();
+    final known = {for (final r in existing) r.id: r.operatorCode};
+    final knownByName = {for (final r in existing) r.name: r.operatorCode};
     String operatorOf(Json r) =>
         (r['operator_code'] as String?) ??
         known[r['id'] as int] ??
+        knownByName[r['name']] ??
         (RegExp(r'^[A-Z ]+ LINE:').hasMatch((r['name'] as String?) ?? '') ? 'metrorail' : 'gabs');
     await _db.delete(_db.busRoutes).go();
     await _db.batch(
@@ -166,7 +172,7 @@ class ReferenceDataService {
       locator<ConnectivityService>().reportSuccess();
       return true;
     } on ApiException catch (e) {
-      if (e.failure == ApiFailure.offline) locator<ConnectivityService>().reportOffline();
+      if (e.failure == ApiFailure.offline) locator<ConnectivityService>().reportOffline(timedOut: e.timedOut);
       return false;
     } catch (_) {
       return false;
@@ -246,6 +252,32 @@ class ReferenceDataService {
     final scored = rows.map((r) => (_stop(r), distanceMetres(lat, lon, r.lat, r.lon))).toList()
       ..sort((a, b) => a.$2.compareTo(b.$2));
     return scored.take(limit).toList();
+  }
+
+  /// Stops called exactly [name] (any case) within [maxMetres] of a point, with distance.
+  /// "Main Road" is a stop in several suburbs, so only the ones near the place count.
+  Future<List<(StopDto, double)>> stopsNamed(String name, double lat, double lon, {double maxMetres = 8000}) async {
+    final n = name.trim().toUpperCase();
+    if (n.isEmpty) return const [];
+    final rows = await (_db.select(_db.stops)..where((s) => s.name.upper().equals(n))).get();
+    return [
+      for (final r in rows)
+        if (distanceMetres(lat, lon, r.lat, r.lon) <= maxMetres) (_stop(r), distanceMetres(lat, lon, r.lat, r.lon)),
+    ];
+  }
+
+  /// Each operator's closest stop to a point, nearest first, leaving out any further than
+  /// [maxMetres]. Someone near a bus stop and a station can take either, and the few
+  /// closest stops overall are usually all one operator's.
+  Future<List<(StopDto, double)>> nearestStopPerOperator(double lat, double lon, {double maxMetres = 5000}) async {
+    final best = <String, (StopDto, double)>{};
+    for (final r in await _db.select(_db.stops).get()) {
+      final d = distanceMetres(lat, lon, r.lat, r.lon);
+      if (d > maxMetres) continue;
+      final held = best[r.operatorCode];
+      if (held == null || d < held.$2) best[r.operatorCode] = (_stop(r), d);
+    }
+    return best.values.toList()..sort((a, b) => a.$2.compareTo(b.$2));
   }
 
   // ---------------------------------------------------------------- routes & timetables

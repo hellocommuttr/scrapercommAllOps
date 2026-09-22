@@ -75,7 +75,7 @@ class CachedApiService {
       return Cached(parsed, fromCache: false, fetchedAt: DateTime.now());
     } on ApiException catch (e) {
       if (e.failure != ApiFailure.offline) rethrow;
-      _connectivity.reportOffline();
+      _connectivity.reportOffline(timedOut: e.timedOut);
       final hit = await _read(key);
       if (hit == null) throw const NotAvailableOffline();
       return Cached(parse(jsonDecode(hit.body) as Json), fromCache: true, fetchedAt: _at(hit.fetchedAt));

@@ -35,14 +35,22 @@ class PlannedJourney {
     return a < row.boardMinutes ? a + 1440 : a;
   }
 
-  double? get durationMinutes => arriveMinutes == null ? null : arriveMinutes! - boardMinutes;
+  double? get durationMinutes => rideMinutes(boardMinutes, arriveMinutes, approx: approx);
   OperatorRef get operator => OperatorRef.from(row.operatorCode, name: row.operatorName, kind: row.operatorKind);
 
   /// Bus number or train line, as on the route chip.
   String get routeNumber => routeShortName(row.timetableNumber, row.routeLabel, operator);
 
+  /// Where the rider gets on and off, as the search named it: a stop, or "between A and B"
+  /// for a point on the road. Empty for trips saved before this was kept.
+  String get boardLabel => row.boardLabel ?? '';
+  String get alightLabel => row.alightLabel ?? '';
+
+  /// Why the bus may not stop where this trip gets on or off, when that is a point on the road.
+  String? get unofficialStopAdvice => unofficialStopAdviceFor(boardLabel, alightLabel, operator);
+
   /// The published cash fare when the ride was saved, if there was one.
-  int? get cashFareCents => row.cashFareCents;
+  int? get cashFareCents => pricesShownFor(operator) ? row.cashFareCents : null;
 
   String get boardTime => formatMinutes(boardMinutes);
   String? get arriveTime => arriveMinutes == null ? null : formatMinutes(arriveMinutes!);
@@ -119,7 +127,7 @@ class PlannerService with ListenableServiceMixin {
             operatorCode: Value(ride.operator.code),
             operatorName: Value(ride.operator.name),
             operatorKind: Value(ride.operator.kind),
-            cashFareCents: Value(ride.fare?.cashCents),
+            cashFareCents: Value(ride.priceCents),
             timetableNumber: ride.option.timetableNumber,
             dayType: ride.option.dayType,
             dayLabel: ride.option.dayLabel,
@@ -135,6 +143,8 @@ class PlannerService with ListenableServiceMixin {
             toSeq: d.toSeq,
             tripSnapshot: Value(trip == null ? null : jsonEncode(trip.toJson())),
             groupId: Value(groupId),
+            boardLabel: Value(ride.option.boardLabel),
+            alightLabel: Value(ride.option.alightLabel),
             createdAt: DateTime.now().millisecondsSinceEpoch,
           ),
         );

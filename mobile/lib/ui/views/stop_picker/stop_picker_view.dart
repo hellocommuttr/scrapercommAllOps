@@ -72,7 +72,11 @@ class StopPickerView extends StackedView<StopPickerViewModel> {
                         ListTile(
                           leading: Icon(stop.isStation ? Icons.train_outlined : Icons.near_me_outlined),
                           title: Text(stop.displayName),
-                          subtitle: Text('${formatDistance(metres)} away', style: TextStyle(color: c.muted)),
+                          subtitle: Text(
+                            '${OperatorRef.from(stop.operatorCode).name} ${stop.isStation ? 'station' : 'bus stop'}'
+                            ' · ${formatDistance(metres)} away',
+                            style: TextStyle(color: c.muted),
+                          ),
                           onTap: () => viewModel.pickStop(stop),
                         ),
                       if (viewModel.myLocation != null)
@@ -80,7 +84,7 @@ class StopPickerView extends StackedView<StopPickerViewModel> {
                           leading: const Icon(Icons.location_on_outlined),
                           title: const Text('My exact location'),
                           subtitle: Text(
-                            'Find buses and trains passing close to where you are',
+                            'Compare Golden Arrow, MyCiTi and trains from the stops near you',
                             style: TextStyle(color: c.muted),
                           ),
                           onTap: viewModel.pickMyLocation,
@@ -109,6 +113,31 @@ class StopPickerView extends StackedView<StopPickerViewModel> {
                           ),
                       ],
                     ],
+                    // A place covers every operator near it, which a single stop cannot, so
+                    // places come first: picking the Cape Town *stop* shows only Golden Arrow.
+                    if (searching && (viewModel.addresses.isNotEmpty || viewModel.addressMessage != null)) ...[
+                      const SectionHeader(
+                        'Places · every bus and train nearby',
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                      ),
+                      for (final h in viewModel.addresses)
+                        ListTile(
+                          leading: const Icon(Icons.place_outlined),
+                          title: Text(titleCase(h.name)),
+                          subtitle: Text(
+                            'Compare Golden Arrow, MyCiTi and trains · ${h.full}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: c.muted),
+                          ),
+                          onTap: () => viewModel.pickAddress(h),
+                        ),
+                      if (viewModel.addressMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: Text(viewModel.addressMessage!, style: TextStyle(color: c.muted)),
+                        ),
+                    ],
                     SectionHeader(
                       searching ? 'Stops and stations' : 'All bus stops and train stations',
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -131,31 +160,6 @@ class StopPickerView extends StackedView<StopPickerViewModel> {
                         ),
                         onTap: () => viewModel.pickStop(s),
                       ),
-                    // Addresses load from the network after the stops, so they go last: a late
-                    // result must never push the stop list out from under a tap.
-                    if (searching && (viewModel.addresses.isNotEmpty || viewModel.addressMessage != null)) ...[
-                      const SectionHeader(
-                        'Addresses and places (needs a connection)',
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                      ),
-                      for (final h in viewModel.addresses)
-                        ListTile(
-                          leading: const Icon(Icons.place_outlined),
-                          title: Text(h.name),
-                          subtitle: Text(
-                            h.full,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: c.muted),
-                          ),
-                          onTap: () => viewModel.pickAddress(h),
-                        ),
-                      if (viewModel.addressMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                          child: Text(viewModel.addressMessage!, style: TextStyle(color: c.muted)),
-                        ),
-                    ],
                     const SizedBox(height: 24),
                   ],
                 ),

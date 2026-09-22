@@ -133,6 +133,25 @@ class PlannedJourneyCard extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (j.unofficialStopAdvice != null && j.status != JourneyStatus.completed) ...[
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.warning_amber_rounded, size: 16, color: c.accentText),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  j.unofficialStopAdvice!,
+                                  style: context.text.bodySmall?.copyWith(color: c.accentText),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

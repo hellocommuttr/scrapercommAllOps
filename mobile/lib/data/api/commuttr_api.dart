@@ -18,11 +18,15 @@ enum ApiFailure {
 }
 
 class ApiException implements Exception {
-  const ApiException(this.failure, this.message, {this.statusCode});
+  const ApiException(this.failure, this.message, {this.statusCode, this.timedOut = false});
 
   final ApiFailure failure;
   final String message;
   final int? statusCode;
+
+  /// No answer in time. Still worth the cache, but a slow request is not proof the
+  /// phone has lost its connection.
+  final bool timedOut;
 
   /// A short code support can ask for, e.g. "E-OFFLINE" or "E-500".
   String get code => switch (failure) {
@@ -57,7 +61,7 @@ class HttpCommuttrApi implements CommuttrApi {
     try {
       res = await _client.get(uri, headers: const {'Accept': 'application/json'}).timeout(timeout);
     } on TimeoutException {
-      throw const ApiException(ApiFailure.offline, 'The request timed out.');
+      throw const ApiException(ApiFailure.offline, 'The request timed out.', timedOut: true);
     } on http.ClientException catch (e) {
       throw ApiException(ApiFailure.offline, e.message);
     } catch (e) {

@@ -19,6 +19,10 @@ enum DayType {
   final String api;
   final String label;
 
+  /// The days a timetable of this type covers, for a card: "Mon–Fri", "Saturday". A time
+  /// on its own does not say whether it is the midweek bus or the Saturday one.
+  String get covers => this == DayType.weekday ? 'Mon–Fri' : label;
+
   static DayType? fromApi(String? value) {
     for (final t in values) {
       if (t.api == value) return t;

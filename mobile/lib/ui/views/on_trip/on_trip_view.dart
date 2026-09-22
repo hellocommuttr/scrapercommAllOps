@@ -245,6 +245,11 @@ class _ActiveTrip extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _TripHeaderCard(viewModel: viewModel, journey: j),
+          // Where it matters most: standing at the roadside.
+          if (j.unofficialStopAdvice case final advice?) ...[
+            const SizedBox(height: 12),
+            InfoBanner(tone: BannerTone.warning, icon: Icons.warning_amber_rounded, message: advice),
+          ],
           const SizedBox(height: 12),
           _NextStopCard(viewModel: viewModel, journey: j, progress: p),
           if (viewModel.stopsUnavailable) ...[

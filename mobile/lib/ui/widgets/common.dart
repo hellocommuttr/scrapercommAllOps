@@ -141,16 +141,19 @@ class RouteBadge extends StatelessWidget {
 
 /// The published cash fare, or nothing. A card price is never shown as "the" price.
 class FareLabel extends StatelessWidget {
-  const FareLabel(this.fare, {super.key, this.compact = true});
+  const FareLabel(this.fare, {super.key, this.compact = true, this.cents});
 
   final Fare? fare;
+
+  /// The amount to show when it is not the fare's own cash price: MyCiTi's saver fare.
+  final int? cents;
 
   /// Just "R12.00" for lists; otherwise "R12.00 cash".
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final cents = fare?.cashCents;
+    final cents = this.cents ?? fare?.cashCents;
     if (cents == null) return const SizedBox.shrink();
     return Semantics(
       label: 'Cash fare ${formatRands(cents)}',
