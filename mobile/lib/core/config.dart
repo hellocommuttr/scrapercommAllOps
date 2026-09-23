@@ -18,6 +18,19 @@ abstract final class AppConfig {
 
   static const goldenArrowUrl = 'https://www.gabs.co.za';
 
+  /// Where each operator publishes its own timetables.
+  ///
+  /// A timetable's PDF link is the file that was on the operator's site the day we loaded
+  /// it, and Golden Arrow deletes those when it reissues: two thirds of ours were 404 by
+  /// September, so "Official timetable (PDF)" led to the operator's error page. The links
+  /// are refreshed by gabs_scraper.relink, and where a timetable is no longer published
+  /// at all the rider is sent to the page that lists them, which does not rot.
+  static String timetablesUrlFor(String operatorCode) => switch (operatorCode) {
+    'metrorail' => 'https://www.prasa.com/train-schedules/cape-town',
+    'myciti' => 'https://www.myciti.org.za/en/timetables/',
+    _ => 'https://www.gabs.co.za/Timetable.aspx',
+  };
+
   /// Commuttr's support phone line and live-chat link. Set these in `env/<flavor>.json`
   /// before release; while empty the Help screen says the channel is not open yet
   /// rather than dialling a number nobody answers.

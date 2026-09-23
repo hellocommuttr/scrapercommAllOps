@@ -259,15 +259,23 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
                     'If times here differ from the official timetable, the official one is right.',
                     style: context.text.bodySmall?.copyWith(color: c.muted),
                   ),
-                  if (vm.timetable?.pdfUrl != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: vm.openPdf,
-                        icon: const Icon(Icons.picture_as_pdf_outlined),
-                        label: const Text('Official timetable (PDF)'),
-                      ),
-                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    // The PDF where the operator still publishes it, and its list of
+                    // timetables where it does not. A link to a file that has been taken
+                    // down reads as our data being wrong about the service.
+                    child: vm.timetable?.pdfUrl != null
+                        ? TextButton.icon(
+                            onPressed: vm.openPdf,
+                            icon: const Icon(Icons.picture_as_pdf_outlined),
+                            label: const Text('Official timetable (PDF)'),
+                          )
+                        : TextButton.icon(
+                            onPressed: vm.openOperatorTimetables,
+                            icon: const Icon(Icons.open_in_new),
+                            label: Text('Official timetables on ${vm.operator.name}'),
+                          ),
+                  ),
                 ],
               ),
             ),

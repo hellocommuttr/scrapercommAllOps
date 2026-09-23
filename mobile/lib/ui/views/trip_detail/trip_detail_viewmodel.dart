@@ -5,6 +5,7 @@ import 'package:stacked_services/stacked_services.dart';
 import '../../../app/app.locator.dart';
 import '../../../app/app.router.dart';
 import '../../../core/footnotes.dart';
+import '../../../core/config.dart';
 import '../../../core/service_day.dart';
 import '../../../data/models/models.dart';
 import '../../../services/cached_api_service.dart';
@@ -297,6 +298,11 @@ class TripDetailViewModel extends BaseViewModel {
     final url = timetable?.pdfUrl;
     if (url != null) await _support.openUrl(url);
   }
+
+  /// The operator's own list of timetables, for a service whose PDF it no longer
+  /// publishes. See AppConfig.timetablesUrlFor.
+  Future<void> openOperatorTimetables() =>
+      _support.openUrl(AppConfig.timetablesUrlFor(operator.code));
 
   void report() => _nav.navigateToReportIssueView(
     report: ReportContext(
