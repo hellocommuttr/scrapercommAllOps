@@ -1,0 +1,14 @@
+# Copy to android/key.properties and fill in. NEVER commit the real file or the keystore:
+# android/.gitignore already excludes key.properties, *.keystore and *.jks.
+#
+# Make the key once, and keep the .jks and these passwords somewhere you cannot lose them
+# (a password manager). Lose the upload key and you have to ask Google to reset it; lose
+# it before Play App Signing is enrolled and you cannot update the app at all.
+#
+#   keytool -genkey -v -keystore commuttr-upload.jks -storetype JKS \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storeFile=commuttr-upload.jks
+storePassword=
+keyAlias=upload
+keyPassword=

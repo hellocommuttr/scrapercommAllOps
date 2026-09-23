@@ -1,3 +1,23 @@
+import java.util.Properties
+
+// The upload key, kept out of the repository.
+//
+// A release built with the debug key cannot be uploaded to Play and cannot be upgraded
+// once installed, because the next build would be signed by a different debug key. So the
+// real key is read from android/key.properties, which .gitignore excludes along with the
+// keystore itself - see README, "Signing a release".
+//
+// Without that file the release build falls back to debug signing, so `flutter run
+// --release` still works for anybody who has not got the key. That build is for testing
+// on a phone and is refused by the store, which is the right way round.
+val keyProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+val hasUploadKey = keyProperties.getProperty("storeFile") != null
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -31,11 +51,31 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasUploadKey) {
+            create("upload") {
+                storeFile = rootProject.file(keyProperties.getProperty("storeFile"))
+                storePassword = keyProperties.getProperty("storePassword")
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasUploadKey) {
+                signingConfigs.getByName("upload")
+            } else {
+                // Testing on a phone still works; the store refuses this build, which is
+                // the right way round.
+                logger.warn("commuttr: android/key.properties is missing - signing this "
+                        + "release with the debug key. It cannot be uploaded to Play.")
+                signingConfigs.getByName("debug")
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

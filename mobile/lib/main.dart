@@ -6,6 +6,7 @@ import 'app/app.bottomsheets.dart';
 import 'app/app.dialogs.dart';
 import 'app/app.locator.dart';
 import 'app/app.router.dart';
+import 'core/crash_reporting.dart';
 import 'services/settings_service.dart';
 import 'ui/theme/app_theme.dart';
 
@@ -14,6 +15,8 @@ Future<void> main() async {
   await setupLocator();
   setupDialogUi();
   setupBottomSheetUi();
+  // Before runApp, so a crash while the first screen builds is still reported.
+  CrashReporting.install();
   runApp(const CommuttrApp());
 }
 
