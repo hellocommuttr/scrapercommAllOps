@@ -46,7 +46,10 @@ abstract interface class CommuttrApi {
 }
 
 class HttpCommuttrApi implements CommuttrApi {
-  HttpCommuttrApi({http.Client? client, String? baseUrl, this.timeout = const Duration(seconds: 15)})
+  // 30 s, not 15: a search between two places in the city centre takes 15-16 s on the
+  // current planner (it reads every trip through ~120 nearby stops at each end), and at
+  // 15 it timed out and the rider was told they were offline.
+  HttpCommuttrApi({http.Client? client, String? baseUrl, this.timeout = const Duration(seconds: 30)})
     : _client = client ?? http.Client(),
       _baseUrl = baseUrl ?? AppConfig.apiBaseUrl;
 

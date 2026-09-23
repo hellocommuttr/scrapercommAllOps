@@ -21,7 +21,7 @@ class LegalViewModel extends BaseViewModel {
   /// Returns false when no mail app is available, so the view can offer the address.
   Future<bool> emailUs() async {
     try {
-      return await _support.emailSupport('Commuttr — ${kind.title}', '');
+      return await _support.emailSupport('Commuttr: ${kind.title}', '');
     } catch (_) {
       return false;
     }

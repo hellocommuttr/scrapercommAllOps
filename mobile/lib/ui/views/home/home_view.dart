@@ -109,8 +109,8 @@ class HomeView extends StackedView<HomeViewModel> {
           tone: BannerTone.warning,
           icon: Icons.celebration_outlined,
           message: o.holidayFallback
-              ? '${o.holidayName} — Sunday times shown. Confirm holiday service with the operator.'
-              : '${o.holidayName} — public holiday timetable.',
+              ? '${o.holidayName}: Sunday times shown. Confirm holiday service with the operator.'
+              : '${o.holidayName}: public holiday timetable.',
         ),
       );
     }
@@ -656,7 +656,7 @@ class _ProblemView extends StatelessWidget {
     SearchProblem.notSavedOffline => EmptyState(
       icon: Icons.cloud_off_outlined,
       title: 'This trip isn\'t saved for offline',
-      message: 'Connect once to search it — after that it works without data.',
+      message: 'Connect once to search it. After that it works without data.',
       actionLabel: 'Try again',
       onAction: vm.search,
     ),

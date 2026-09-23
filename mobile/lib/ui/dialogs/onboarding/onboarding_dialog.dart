@@ -28,14 +28,14 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
     _Step(
       Icons.alt_route_rounded,
       'Find your bus or train',
-      'Pick where you are and where you\'re going. Commuttr shows the next Golden Arrow and MyCiTi '
-          'buses and Metrorail trains for the day you travel, and the first and last one of the day.',
+      'Pick where you are and where you\'re going. Commuttr shows the next Golden Arrow buses, '
+          'MyCiTi buses and Metrorail trains for the day you travel, with the first and last one.',
     ),
     _Step(
       Icons.notifications_active_outlined,
       'Save it, get reminded',
       'Add a trip to your planner. On your phone we can remind you when it\'s time to leave, '
-          'and when your stop is next — even with the app closed.',
+          'and when your stop is next, even with the app closed.',
     ),
     _Step(
       Icons.cloud_off_outlined,
@@ -140,7 +140,7 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Times come from the operators\' published timetables — they\'re scheduled, not live. '
+                'Times come from the operators\' published timetables, so they are scheduled, not live. '
                 'Commuttr is independent and not affiliated with Golden Arrow, MyCiTi or Metrorail.',
                 textAlign: TextAlign.center,
                 style: context.text.bodySmall?.copyWith(color: c.muted),

@@ -37,12 +37,12 @@
   {
     "topic": "Using Commuttr",
     "q": "Is MyCiTi included?",
-    "a": "Yes. Commuttr has MyCiTi's 47 routes, such as T01, D05 and 101, with weekday, Saturday and Sunday service. Stop positions come from OpenStreetMap. A few MyCiTi stops don't have a position yet, so you can't use them as a start or end point. MyCiTi fares aren't shown yet. You pay for MyCiTi with a myconnect card — see www.myciti.org.za."
+    "a": "Yes. Commuttr has MyCiTi's 47 routes, such as T01, D05 and 101, with weekday, Saturday and Sunday service. Stop positions come from OpenStreetMap. A few MyCiTi stops don't have a position yet, so you can't use them as a start or end point. MyCiTi fares are shown with each trip, priced by distance, with the peak and saver price and the day, 3-day, 7-day and monthly passes. You pay with a myconnect card. See www.myciti.org.za."
   },
   {
     "topic": "Routes & Planning",
     "q": "Which trains are included?",
-    "a": "Metrorail's Cape Town trains on the Central, Northern, Southern, Cape Flats and Monte Vista lines, from Metrorail's published timetables. Train times are shown by line — the line name is used where a bus would show a route name."
+    "a": "Metrorail's Cape Town trains on the Central, Northern, Southern, Cape Flats and Monte Vista lines, from Metrorail's published timetables. Train times are shown by line, and the line name is used where a bus would show a route name."
   },
   {
     "topic": "Routes & Planning",
@@ -117,17 +117,17 @@
   {
     "topic": "Payments & Wallet",
     "q": "Can I top up or get a refund in Commuttr?",
-    "a": "No — there's nothing to top up and nothing to refund, because Commuttr never takes your money. For refunds on a ticket or card, contact the operator you bought it from: Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za)."
+    "a": "No. There is nothing to top up and nothing to refund, because Commuttr never takes your money. For refunds on a ticket or card, contact the operator you bought it from: Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za)."
   },
   {
     "topic": "Payments & Wallet",
     "q": "Where can I see fares?",
-    "a": "Where the operator publishes a cash fare for your journey, Commuttr shows it with the trip. For trains that is Metrorail's single ticket price, with the return, weekly and monthly prices under \"About this fare\". For buses it is Golden Arrow's published cash fare. We only ever show a cash fare as the price — Golden Arrow card (Gold Card) prices are never shown as the price. MyCiTi fares aren't shown yet — MyCiTi is paid with a myconnect card (see www.myciti.org.za)."
+    "a": "With the trip, where the operator publishes one. For trains it is Metrorail's single ticket price, with the return, weekly and monthly prices under \"About this fare\". For MyCiTi it is the fare for your distance, peak or saver depending on when you travel, with the day, 3-day, 7-day and monthly passes. Golden Arrow publishes no price for a single trip, so none is shown; open the trip to see its Gold Card weekly and monthly prices."
   },
   {
     "topic": "Payments & Wallet",
     "q": "Why is there no price for my bus?",
-    "a": "Golden Arrow publishes cash fares for only about 21 routes, so many bus trips show no price. Rather than guess, we show nothing. For the fare on your route, ask the driver or check gabs.co.za. MyCiTi fares aren't in Commuttr yet — see www.myciti.org.za."
+    "a": "Golden Arrow does not publish what one trip costs in cash, so Commuttr shows no price rather than guess. Ask the driver, or see gabs.co.za. Open the trip to see Golden Arrow's Gold Card weekly and monthly prices, which are published. MyCiTi and Metrorail fares are shown with the trip."
   },
   {
     "topic": "Payments & Wallet",
@@ -137,7 +137,7 @@
   {
     "topic": "Payments & Wallet",
     "q": "Where do I buy a ticket?",
-    "a": "Metrorail tickets — single, return, weekly and monthly — are bought at the station before you board. For Golden Arrow bus tickets and cards, see gabs.co.za for where and how to buy them. MyCiTi is paid with a myconnect card — see www.myciti.org.za. Commuttr doesn't sell tickets for trains or buses."
+    "a": "Metrorail tickets (single, return, weekly and monthly) are bought at the station before you board. Golden Arrow's Gold Card is loaded with a weekly or monthly GO EASY product; see gabs.co.za for where to buy and load one. MyCiTi is paid with a myconnect card, which you tap on the way in and out. See www.myciti.org.za. Commuttr sells no tickets for buses or trains."
   },
   {
     "topic": "Account & Profile",
@@ -162,7 +162,7 @@
   {
     "topic": "Account & Profile",
     "q": "How do I delete my data?",
-    "a": "Go to Profile → Offline & data → Erase everything. This removes everything Commuttr has saved on this device. For our server logs, email us — see the Privacy Policy."
+    "a": "Go to Profile → Offline & data → Erase everything. This removes everything Commuttr has saved on this device. For our server logs, email us. See the Privacy Policy."
   },
   {
     "topic": "Alerts & Updates",
@@ -172,7 +172,7 @@
   {
     "topic": "Alerts & Updates",
     "q": "Why am I not getting reminders?",
-    "a": "Reminders need permission to show notifications. Check Commuttr's notification settings on your phone, and make sure battery saver isn't blocking it. Reminders don't work on the web version — use the Android or iPhone app for those."
+    "a": "Reminders need permission to show notifications. Check Commuttr's notification settings on your phone, and make sure battery saver isn't blocking it. Reminders don't work on the web version, so use the Android or iPhone app for those."
   },
   {
     "topic": "Alerts & Updates",
@@ -182,7 +182,7 @@
   {
     "topic": "Alerts & Updates",
     "q": "What are the notifications in the app?",
-    "a": "The bell shows messages from Commuttr itself — for example when your timetable data has been refreshed. They're kept on this device. Commuttr doesn't receive alerts from Golden Arrow, MyCiTi or Metrorail."
+    "a": "The bell shows messages from Commuttr itself, for example when your timetable data has been refreshed. They're kept on this device. Commuttr doesn't receive alerts from Golden Arrow, MyCiTi or Metrorail."
   },
   {
     "topic": "Alerts & Updates",
@@ -207,6 +207,6 @@
   {
     "topic": "Accessibility",
     "q": "Which buses and trains are wheelchair accessible?",
-    "a": "The operators don't publish which services are wheelchair accessible in a form Commuttr can use, so Commuttr can't show it yet — the filter says \"Not published by the operators yet\". Please ask Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za) directly before you travel."
+    "a": "The operators don't publish which services are wheelchair accessible in a form Commuttr can use, so Commuttr can't show it yet, and the filter says \"Not published by the operators yet\". Please ask Golden Arrow (gabs.co.za), MyCiTi (www.myciti.org.za) or Metrorail (metrorail.co.za) directly before you travel."
   }
 ]

@@ -42,7 +42,7 @@ class ReportIssueViewModel extends BaseViewModel {
       reportContext.fromName != null || reportContext.routeLabel != null || reportContext.rideKey != null;
   String get supportEmail => AppConfig.supportEmail;
   String get subject =>
-      'Commuttr report${_reportId == null ? '' : ' $_reportId'} — ${_category == null ? '' : labelFor(_category!)}';
+      'Commuttr report${_reportId == null ? '' : ' $_reportId'}: ${_category == null ? '' : labelFor(_category!)}';
 
   /// The wording shown for each category. Commuttr covers buses and trains, so the
   /// labels name both; the enum itself lives in SupportService.

@@ -138,7 +138,7 @@ class _PlaceRow extends StatelessWidget {
       leading: Icon(icon),
       title: Text(label),
       subtitle: Text(
-        set ? place!.endpoint.displayName : 'Not set — tap to choose a stop',
+        set ? place!.endpoint.displayName : 'Not set. Tap to choose a stop',
         style: TextStyle(color: context.colors.muted),
       ),
       trailing: onRemove == null

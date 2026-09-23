@@ -99,7 +99,7 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
                       Expanded(
                         // An arrival that is only the same floor as boarding is not a time.
                         child: Text(
-                          '${vm.boardTime} → ${vm.duration == null && vm.arriveApprox ? '—' : vm.arriveTime ?? '—'}',
+                          '${vm.boardTime} → ${vm.duration == null && vm.arriveApprox ? '-' : vm.arriveTime ?? '-'}',
                           style: context.text.headlineSmall,
                         ),
                       ),
@@ -433,7 +433,7 @@ class _StopRow extends StatelessWidget {
     final notes = <String>[];
     final String time;
     if (row.time.isEmpty || row.time == 'via') {
-      time = '—';
+      time = '-';
       notes.add('time not published');
     } else {
       time = _clock(row.time);
@@ -454,7 +454,7 @@ class _StopRow extends StatelessWidget {
     final ridingBelow = row.role == StopRole.ride || row.role == StopRole.board;
     final faded = aside ? c.muted : null;
     return Semantics(
-      label: '${titleCase(row.name)}${tag == null ? '' : ', $tag'}, ${time == '—' ? 'time not published' : time}',
+      label: '${titleCase(row.name)}${tag == null ? '' : ', $tag'}, ${time == '-' ? 'time not published' : time}',
       excludeSemantics: true,
       child: IntrinsicHeight(
         child: Row(
@@ -469,7 +469,7 @@ class _StopRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontWeight: mine ? FontWeight.w700 : FontWeight.w400,
-                    color: time == '—' ? c.muted : faded,
+                    color: time == '-' ? c.muted : faded,
                   ),
                 ),
               ),
@@ -539,6 +539,49 @@ class _StopRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Golden Arrow: no price for one trip, because none is published, and the Gold Card
+/// products that are. Shown here on the trip rather than on the results card, where a
+/// weekly price beside a single journey would read as what that journey costs.
+Widget _goldCard(BuildContext context, Fare f) {
+  final c = context.colors;
+  final products = [
+    ('Gold Card weekly', 'any number of trips that week', f.weeklyCents),
+    ('Gold Card monthly', 'any number of trips that month', f.monthlyCents),
+  ].where((p) => p.$3 != null).toList();
+  return AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('No price for a single trip', style: context.text.titleSmall),
+        const SizedBox(height: 4),
+        Text(
+          'Golden Arrow does not publish what one trip costs in cash, so Commuttr shows no price for it. '
+          'Ask the driver, or see gabs.co.za.',
+          style: context.text.bodySmall?.copyWith(color: c.muted),
+        ),
+        const SizedBox(height: 12),
+        Text('Gold Card', style: context.text.titleSmall),
+        for (final (label, what, cents) in products)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                Expanded(child: Text('$label · $what')),
+                Text(formatRands(cents!), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        Text(
+          'GO EASY is one price whatever the distance, loaded onto a Gold Card. '
+          'Last published prices; they may have changed.',
+          style: context.text.bodySmall?.copyWith(color: c.muted),
+        ),
+      ],
+    ),
+  );
 }
 
 /// MyCiTi: the fare that applies when this bus leaves, both fares, and the passes.
@@ -666,12 +709,16 @@ class _FareCard extends StatelessWidget {
     final c = context.colors;
     final f = fare;
     final cash = f?.cashCents;
+    if (f != null && cash == null && !operator.isTrain && !f.isMyciti &&
+        (f.weeklyCents != null || f.monthlyCents != null)) {
+      return _goldCard(context, f);
+    }
     if (f == null || cash == null) {
       return InfoBanner(
         message: switch (operator.code) {
           'metrorail' => 'Metrorail publishes no fare for this journey. Buy your ticket at the station.',
           'myciti' =>
-            'MyCiTi fares are by distance and paid with a myconnect card. Commuttr does not have them yet — '
+            'MyCiTi fares are by distance and paid with a myconnect card. Commuttr does not have them yet, '
                 'see myciti.org.za.',
           _ =>
             'Golden Arrow does not publish its cash fares, so Commuttr does not show a price. Ask the driver, '
@@ -733,7 +780,7 @@ class _FareCard extends StatelessWidget {
           ],
           if (f.zoneApprox)
             Text(
-              'The fare zone for one of these stations is estimated — check at the ticket office.',
+              'The fare zone for one of these stations is estimated, so check at the ticket office.',
               style: context.text.bodySmall?.copyWith(color: c.warning),
             ),
         ],

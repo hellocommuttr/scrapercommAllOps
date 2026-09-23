@@ -32,7 +32,7 @@ class AboutViewModel extends FutureViewModel<String> {
   String get lastRefreshed {
     final t = _settings.lastRefresh;
     return t == null
-        ? 'Never — using the timetables that came with the app'
+        ? 'Never, so the timetables that came with the app are in use'
         : DateFormat('d MMM yyyy, HH:mm').format(t.toLocal());
   }
 

@@ -54,7 +54,7 @@ class TimetableView extends StackedView<TimetableViewModel> {
                 icon: Icons.cloud_off_outlined,
                 title: 'Not saved for offline',
                 message:
-                    'Not saved for offline — connect once to view this timetable. '
+                    'Not saved for offline. Connect once to view this timetable. '
                     'After that it stays on your phone.',
                 actionLabel: 'Retry',
                 onAction: vm.load,
@@ -86,7 +86,7 @@ class TimetableView extends StackedView<TimetableViewModel> {
                 tone: vm.stale ? BannerTone.warning : BannerTone.offline,
                 icon: Icons.download_done_rounded,
                 message: vm.stale
-                    ? '${vm.savedLabel}. This copy is over a week old — '
+                    ? '${vm.savedLabel}. This copy is over a week old, '
                           '${vm.hasPdf ? 'check the official PDF' : 'connect to check for changes'}.'
                     : vm.savedLabel,
               ),
@@ -148,7 +148,7 @@ class TimetableView extends StackedView<TimetableViewModel> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'No service — no ${vm.operator.vehicles} are scheduled in this direction on '
+                                'No service. No ${vm.operator.vehicles} are scheduled in this direction on '
                                 '${schedule.dayLabel.isEmpty ? 'this day' : schedule.dayLabel}.',
                               ),
                             ),
@@ -201,7 +201,7 @@ class TimetableView extends StackedView<TimetableViewModel> {
                                   text: code,
                                   style: TextStyle(fontWeight: FontWeight.w700, color: context.colors.accentText),
                                 ),
-                                TextSpan(text: ' — $text'),
+                                TextSpan(text: ' · $text'),
                               ],
                             ),
                           ),

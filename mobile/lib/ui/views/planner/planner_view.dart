@@ -246,7 +246,7 @@ class _StatsCard extends StatelessWidget {
           children: [
             _Stat(icon: Icons.route_outlined, label: 'Journeys', value: '${viewModel.journeyCount}'),
             const VerticalDivider(width: 1),
-            _Stat(icon: Icons.schedule, label: 'Total travel time', value: total > 0 ? formatDuration(total) : '—'),
+            _Stat(icon: Icons.schedule, label: 'Total travel time', value: total > 0 ? formatDuration(total) : '-'),
             const VerticalDivider(width: 1),
             _Stat(icon: modeIcon, label: 'Transport mode', value: viewModel.transportMode),
           ],

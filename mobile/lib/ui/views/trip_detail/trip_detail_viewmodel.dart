@@ -257,14 +257,14 @@ class TripDetailViewModel extends BaseViewModel {
   Future<void> remindMe() async {
     if (!_reminders.isSupported) {
       message = kIsWeb
-          ? 'Reminders need the Commuttr app on Android or iPhone — browsers can\'t alert you reliably.'
+          ? 'Reminders need the Commuttr app on Android or iPhone. Browsers can\'t alert you reliably.'
           : 'Reminders aren\'t available on this device.';
       rebuildUi();
       return;
     }
     final lead = _settings.reminderLeadMinutes;
     if (minutesUntil <= lead) {
-      message = 'This ${operator.vehicle} is scheduled in under $lead minutes — too soon for a reminder.';
+      message = 'This ${operator.vehicle} is scheduled in under $lead minutes, which is too soon for a reminder.';
       rebuildUi();
       return;
     }
@@ -280,7 +280,7 @@ class TripDetailViewModel extends BaseViewModel {
     planned = await _planner.byId(j.id);
     message = ok
         ? 'We\'ll remind you $lead min before $boardTime.'
-        : 'Couldn\'t set the reminder — the time has passed.';
+        : 'Couldn\'t set the reminder. The time has passed.';
     rebuildUi();
   }
 
@@ -289,7 +289,7 @@ class TripDetailViewModel extends BaseViewModel {
     '${from.displayName} → ${to.displayName}\n'
     '${formatDate(date)}: scheduled $boardTime${boardApprox ? ' (approx.)' : ''}'
     '${arriveTime != null ? ', arrives $arriveTime' : ''}\n'
-    'Scheduled times, not live — shared from Commuttr.',
+    'Scheduled times, not live, shared from Commuttr.',
     subject: 'My ${operator.vehicle}',
   );
 

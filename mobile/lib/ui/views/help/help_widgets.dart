@@ -145,7 +145,9 @@ class _FaqTile extends StatelessWidget {
       title: Text(entry.question, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
       subtitle: showTopic ? Text(entry.topic, style: TextStyle(fontSize: 13, color: context.colors.muted)) : null,
       children: [
-        SelectableText(entry.answer, style: TextStyle(fontSize: 14, height: 1.5, color: context.colors.muted)),
+        // Plain Text, not SelectableText: on the web build the selectable one paints a
+        // grey block where the answer should be, so every article looked empty.
+        Text(entry.answer, style: TextStyle(fontSize: 14, height: 1.5, color: context.colors.muted)),
       ],
     );
   }

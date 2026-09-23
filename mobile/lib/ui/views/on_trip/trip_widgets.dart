@@ -351,7 +351,7 @@ class _MoreRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final label = '— $count more ${count == 1 ? word : '${word}s'}';
+    final label = '+ $count more ${count == 1 ? word : '${word}s'}';
     return Semantics(
       button: true,
       label: '$label. Show them',

@@ -110,6 +110,16 @@ void main() {
         'fare': {'cash_cents': 4450},
       });
       expect(bus.fare, isNull);
+      // Gold Card weekly and monthly are published, so those are kept for the trip screen.
+      final goldCard = PlanOption.fromJson({
+        'timetable_number': '001501',
+        'route_label': 'CAPE TOWN - KRAAIFONTEIN',
+        'operator_code': 'gabs',
+        'fare': {'cash_cents': 4450, 'weekly_cents': 24850, 'monthly_cents': 109300, 'basis': 'go_easy'},
+      });
+      expect(goldCard.fare!.cashCents, isNull);
+      expect(goldCard.fare!.weeklyCents, 24850);
+      expect(goldCard.fare!.monthlyCents, 109300);
       final train = PlanOption.fromJson({
         'timetable_number': '',
         'route_label': 'Northern Line',

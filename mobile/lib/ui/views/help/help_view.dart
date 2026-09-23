@@ -152,7 +152,7 @@ class HelpView extends StackedView<HelpViewModel> {
     if (!vm.chatAvailable) {
       _snack(
         context,
-        'Live chat is coming soon — email us meanwhile',
+        'Live chat is coming soon. Email us meanwhile',
         action: SnackBarAction(label: 'Email us', onPressed: () => _emailUs(context, vm)),
       );
       return;
@@ -165,7 +165,7 @@ class HelpView extends StackedView<HelpViewModel> {
     if (!vm.phoneAvailable) {
       _snack(
         context,
-        'Our phone line is coming soon — email us meanwhile',
+        'Our phone line is coming soon. Email us meanwhile',
         action: SnackBarAction(label: 'Email us', onPressed: () => _emailUs(context, vm)),
       );
       return;
@@ -244,21 +244,21 @@ class HelpView extends StackedView<HelpViewModel> {
               row(
                 Icons.directions_bus_outlined,
                 'Report to Golden Arrow',
-                'Buses, drivers and bus stops — gabs.co.za',
+                'Buses, drivers and bus stops: gabs.co.za',
                 () => _open(context, vm.openGoldenArrow, "Couldn't open a browser. Visit gabs.co.za."),
               ),
               const Divider(indent: 56),
               row(
                 Icons.directions_bus_outlined,
                 'Report to MyCiTi',
-                'MyCiTi buses, stations and stops — myciti.org.za',
+                'MyCiTi buses, stations and stops: myciti.org.za',
                 () => _open(context, vm.openMyCiti, "Couldn't open a browser. Visit www.myciti.org.za."),
               ),
               const Divider(indent: 56),
               row(
                 Icons.train_outlined,
                 'Report to Metrorail',
-                'Trains, stations and staff — metrorail.co.za',
+                'Trains, stations and staff: metrorail.co.za',
                 () => _open(context, vm.openMetrorail, "Couldn't open a browser. Visit metrorail.co.za."),
               ),
               const Divider(indent: 56),

@@ -83,7 +83,7 @@ class ReminderService {
       title: 'Time to leave for the ${j.boardTime} ${j.operator.vehicle}',
       body:
           '${j.operator.name} ${j.routeNumber} from ${j.from.displayName} is scheduled at ${j.boardTime}. '
-          'Scheduled time — the ${j.operator.vehicle} may be early or late.',
+          'Scheduled time, so the ${j.operator.vehicle} may be early or late.',
       payload: j.id,
     );
     await locator<InboxService>().post(
@@ -112,7 +112,7 @@ class ReminderService {
       notificationDetails: _details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       title: 'Your stop is coming up',
-      body: 'Get ready to get off at ${j.to.displayName}. Based on the timetable — watch for your stop.',
+      body: 'Get ready to get off at ${j.to.displayName}. Based on the timetable, so watch for your stop.',
       payload: j.id,
     );
     return true;

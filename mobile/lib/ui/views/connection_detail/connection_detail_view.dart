@@ -46,7 +46,7 @@ class ConnectionDetailView extends StackedView<ConnectionDetailViewModel> {
               ),
               const SizedBox(height: 12),
               const ScheduledDisclaimer(
-                extra: 'A late first ride can mean missing the second — leave extra time at the change.',
+                extra: 'A late first ride can mean missing the second, so leave extra time at the change.',
               ),
               if (connection.fare?.isMyciti == true &&
                   connection.priceOn(weekday: weekday) != null) ...[
@@ -65,7 +65,7 @@ class ConnectionDetailView extends StackedView<ConnectionDetailViewModel> {
                 InfoBanner(
                   icon: Icons.payments_outlined,
                   message: connection.fare!.kind == 'per_leg'
-                      ? 'About ${formatRands(connection.fare!.cashCents!)} in cash in total — you pay for each ride '
+                      ? 'About ${formatRands(connection.fare!.cashCents!)} in cash in total, and you pay for each ride '
                             'separately ($legFares). '
                             'Last published fares; they may have changed.'
                       : '${formatRands(connection.fare!.cashCents!)} cash for the whole trip: one ticket from '
@@ -121,7 +121,7 @@ class ConnectionDetailView extends StackedView<ConnectionDetailViewModel> {
                             Expanded(
                               child: Text(
                                 'Change at ${titleCase(leg.toName)}'
-                                '${viewModel.waitAfter(i) != null ? ' — ${formatDuration(viewModel.waitAfter(i)!)} wait' : ''}',
+                                '${viewModel.waitAfter(i) != null ? ', ${formatDuration(viewModel.waitAfter(i)!)} wait' : ''}',
                               ),
                             ),
                           ],

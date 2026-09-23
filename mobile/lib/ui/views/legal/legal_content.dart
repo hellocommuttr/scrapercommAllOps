@@ -65,8 +65,8 @@ const _terms = LegalDocument(
       'Commuttr shows scheduled times only. It does not track vehicles and does not show delays, cancellations, '
           'breakdowns, route changes or other disruptions. Trip progress is worked out from the timetable and the '
           'clock. Some times are estimated between published stops and are marked as such.',
-      'Please check with the operator — Golden Arrow at gabs.co.za, MyCiTi at www.myciti.org.za or Metrorail at '
-          'metrorail.co.za — before you '
+      'Please check with the operator, Golden Arrow at gabs.co.za, MyCiTi at www.myciti.org.za or Metrorail at '
+          'metrorail.co.za, before you '
           'rely on a time or a fare, and allow extra time. You are responsible for your own travel decisions and '
           'your own safety.',
       'Please use Commuttr for personal journey planning. You must not:',
@@ -82,7 +82,7 @@ const _terms = LegalDocument(
       'The profile details you choose to add (such as your name, photo, phone number, email address and area), '
           'your planner, favourites and settings are stored only on this device. They are never uploaded, so we '
           'cannot see, restore or recover them. Use Export backup if you want to keep a copy, and keep backup files '
-          'safe — they are not encrypted.',
+          'safe, because they are not encrypted.',
     ]),
     LegalSection('Payments & Wallet', [
       'Commuttr is free. It does not sell tickets, cards or passes, does not take payments, has no wallet and holds '
@@ -104,7 +104,7 @@ const _terms = LegalDocument(
       'Commuttr is provided free of charge, "as is" and "as available". We do not promise that it will be accurate, '
           'complete, up to date or always available.',
       'As far as the law allows, we are not liable for any loss or damage arising from your use of Commuttr or from '
-          'relying on its information — for example a missed bus or train, a missed connection, lost time, a fare '
+          'relying on its information, for example a missed bus or train, a missed connection, lost time, a fare '
           'that differs from the one shown, or travel costs.',
       'Nothing in these terms limits rights you have under the Consumer Protection Act that cannot legally be '
           'excluded.',
@@ -131,7 +131,7 @@ const _privacy = LegalDocument(
           'address, the time and what was searched.',
       '• Reports and emails: what you choose to send us, including your email address.',
       'Your location is used only when you tap "Use my location" or "Nearby stops", and only with your permission. '
-          'It is used on your device to find nearby stops and is not stored or sent to us — unless you choose to '
+          'It is used on your device to find nearby stops and is not stored or sent to us, unless you choose to '
           'search from a map point, which is sent as a trip search.',
       'These stay on this device (or in this browser, on the web) and are never uploaded: your profile details and '
           'photo, planner, favourites, recent searches, settings and saved copies of timetables.',

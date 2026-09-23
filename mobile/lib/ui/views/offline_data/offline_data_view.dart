@@ -89,7 +89,7 @@ class OfflineDataView extends StackedView<OfflineDataViewModel> {
                 icon: Icons.backup_outlined,
                 message:
                     'A backup holds your planner, favourites, search history and settings. '
-                    'Use it to move to a new phone — Commuttr has no accounts.',
+                    'Use it to move to a new phone, because Commuttr has no accounts.',
               ),
             ),
             NavGroup(

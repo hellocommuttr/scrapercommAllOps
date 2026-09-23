@@ -115,7 +115,7 @@ class EditProfileViewModel extends ReactiveViewModel {
 
   Future<void> changePassword() => _dialogs.showDialog(
     title: 'Change password',
-    description: "Commuttr doesn't use accounts or passwords — your details stay on this phone.",
+    description: "Commuttr doesn't use accounts or passwords, so your details stay on this phone.",
     buttonTitle: 'OK',
   );
 

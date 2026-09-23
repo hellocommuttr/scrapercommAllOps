@@ -74,7 +74,7 @@ class OfflineDataViewModel extends ReactiveViewModel {
 
   Future<String?> refresh() async {
     if (offline) {
-      return "You're offline. Connect to the internet to refresh — your saved timetables still work.";
+      return "You're offline. Connect to the internet to refresh. Your saved timetables still work.";
     }
     final ok = await _confirm(
       'Refresh timetable data?',
@@ -89,13 +89,13 @@ class OfflineDataViewModel extends ReactiveViewModel {
     try {
       refreshed = await runBusyFuture(_support.refreshTimetableData(), busyObject: refreshKey, throwException: true);
     } catch (_) {
-      return "Couldn't refresh the timetables. Your saved timetables still work — try again later.";
+      return "Couldn't refresh the timetables. Your saved timetables still work, so try again later.";
     } finally {
       await _loadCounts();
     }
     return refreshed
         ? 'Timetable data refreshed.'
-        : "Couldn't reach Commuttr. Nothing was changed — your saved timetables still work. "
+        : "Couldn't reach Commuttr. Nothing was changed, and your saved timetables still work. "
               'Try again when you have signal.';
   }
 
@@ -152,7 +152,7 @@ class OfflineDataViewModel extends ReactiveViewModel {
     } on FormatException {
       return "That isn't a Commuttr backup. Use the text or .json file you exported from Commuttr.";
     } catch (_) {
-      return "Couldn't import that backup — it may be damaged or from a newer version of Commuttr.";
+      return "Couldn't import that backup. It may be damaged or from a newer version of Commuttr.";
     }
   }
 
@@ -179,7 +179,7 @@ class OfflineDataViewModel extends ReactiveViewModel {
           '• Search history\n'
           '• Notifications\n'
           '• Your profile and settings\n\n'
-          "The timetables that came with the app are reloaded. This can't be undone — "
+          "The timetables that came with the app are reloaded. This can't be undone. "
           'export a backup first if you might want it back.',
       'Erase everything',
     );

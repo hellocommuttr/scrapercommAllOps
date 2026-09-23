@@ -124,6 +124,24 @@ class Fare {
 
   /// A MyCiTi fare, priced by distance band with a peak and a saver price.
   bool get isMyciti => basis == 'myciti_distance';
+
+  /// The same fare without a price for one trip, keeping the products sold by the week
+  /// and the month. Golden Arrow publishes no cash fare, so no single ride can be priced,
+  /// but its Gold Card weekly and monthly prices are published and worth showing.
+  Fare get withoutSingleTrip => Fare(
+    cashEffectiveFrom: cashEffectiveFrom,
+    weeklyCents: weeklyCents,
+    weeklySatCents: weeklySatCents,
+    monthlyCents: monthlyCents,
+    basis: basis,
+    basisFrom: basisFrom,
+    basisTo: basisTo,
+    zoneApprox: zoneApprox,
+    kind: kind,
+  );
+
+  /// Anything to show at all: a price for the trip, or a weekly or monthly product.
+  bool get hasAnything => cashCents != null || weeklyCents != null || monthlyCents != null;
 }
 
 /// MyCiTi's peak: a journey starting on a weekday from 06:45 to 08:00 or 16:15 to 17:30.
@@ -385,7 +403,7 @@ class PlanOption {
     boardLabel: _s(j['board_label']) ?? '',
     alightLabel: _s(j['alight_label']) ?? '',
     operator: operator,
-    fare: pricesShownFor(operator) ? Fare.fromJson(j['fare']) : null,
+    fare: fareShownFor(operator, Fare.fromJson(j['fare'])),
     boardAwayM: _i(j['board_away_m']),
     alightAwayM: _i(j['alight_away_m']),
   );
@@ -472,13 +490,21 @@ String? unofficialStopAdviceFor(String boardLabel, String alightLabel, OperatorR
   ].join(' ');
 }
 
-/// Whether the app shows this operator's prices.
+/// Whether the app prices a single trip on this operator.
 ///
-/// Not Golden Arrow's, for now. What the API holds for Golden Arrow are Gold Card prices
-/// and a cash price for a handful of routes, and Golden Arrow does not publish cash fares
-/// across the network: a rider shown R44.50 for a trip may be charged something else at the
-/// door, and a wrong price is worse than none. The trip screen says to ask the driver.
+/// Not Golden Arrow. It does not publish cash fares across the network, and what the API
+/// holds is a cash price for a handful of routes: a rider shown R44.50 may be charged
+/// something else at the door, and a wrong price is worse than none. Its Gold Card weekly
+/// and monthly prices are published, and those are shown with the trip.
 bool pricesShownFor(OperatorRef operator) => operator.code != OperatorRef.goldenArrow.code;
+
+/// The fare to keep for this operator: all of it, or for Golden Arrow only the products
+/// sold by the week and the month. Null when nothing is left worth showing.
+Fare? fareShownFor(OperatorRef operator, Fare? fare) {
+  if (fare == null) return null;
+  final kept = pricesShownFor(operator) ? fare : fare.withoutSingleTrip;
+  return kept.hasAnything ? kept : null;
+}
 
 /// Which operator a timetable number belongs to, for payloads without an operator field.
 OperatorRef operatorForTimetableNumber(String timetableNumber) {
@@ -641,7 +667,7 @@ class ConnectionLeg {
     tripIndex: _i(j['trip_index'])!,
     fromSeq: _i(j['from_seq'])!,
     toSeq: _i(j['to_seq'])!,
-    fare: pricesShownFor(operatorForTimetableNumber(_s(j['timetable_number']) ?? '')) ? Fare.fromJson(j['fare']) : null,
+    fare: fareShownFor(operatorForTimetableNumber(_s(j['timetable_number']) ?? ''), Fare.fromJson(j['fare'])),
   );
 
   final int fromStopId;

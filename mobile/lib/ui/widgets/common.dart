@@ -267,7 +267,7 @@ class OfflineBanner extends StackedView<OfflineBannerModel> {
       padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: InfoBanner(
         tone: BannerTone.offline,
-        message: "You're offline. Showing saved timetables — new searches need a connection.",
+        message: "You're offline. Showing saved timetables. New searches need a connection.",
       ),
     );
   }
@@ -432,7 +432,7 @@ class ScheduledDisclaimer extends StatelessWidget {
     final place = o?.isTrain == true ? 'station' : 'stop';
     return InfoBanner(
       message:
-          'Scheduled times from $source — not live tracking. '
+          'Scheduled times from $source, not live tracking. '
           '$vehicles can be early, late or cancelled. ${extra ?? 'Be at your $place 5–10 min early.'}',
     );
   }

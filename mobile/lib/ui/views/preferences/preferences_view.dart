@@ -46,7 +46,7 @@ class PreferencesView extends StackedView<PreferencesViewModel> {
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: InfoBanner(
                   message:
-                      "Reminders need the Android or iOS app — a browser can't notify you when "
+                      "Reminders need the Android or iOS app. A browser can't notify you when "
                       'Commuttr is closed.',
                 ),
               ),
@@ -112,7 +112,7 @@ class PreferencesView extends StackedView<PreferencesViewModel> {
               children: [
                 _Labelled(
                   title: 'Arrive at my stop early',
-                  subtitle: 'Shown on trip details. Buses can leave early — 5 to 10 min is safest.',
+                  subtitle: 'Shown on trip details. Buses can leave early, so 5 to 10 min is safest.',
                   child: _Choice<int>(
                     label: 'Minutes early',
                     selected: vm.arriveEarly,

@@ -84,7 +84,7 @@ class RouteDetailView extends StackedView<RouteDetailViewModel> {
                         title: 'Route not found',
                         message:
                             'This route is not in the timetables saved on your phone. '
-                            'It may have been withdrawn — check the route list again.',
+                            'It may have been withdrawn. Check the route list again.',
                       )
                     else if (viewModel.timetables.isEmpty)
                       EmptyState(
@@ -112,8 +112,8 @@ class RouteDetailView extends StackedView<RouteDetailViewModel> {
                       child: ScheduledDisclaimer(
                         operator: operator,
                         extra: operator.isTrain
-                            ? '${operator.name} can change or cancel services at short notice — check before you travel.'
-                            : 'Check the official PDF if a time matters — ${operator.name} can change timetables.',
+                            ? '${operator.name} can change or cancel services at short notice, so check before you travel.'
+                            : 'Check the official PDF if a time matters, because ${operator.name} can change timetables.',
                       ),
                     ),
                     Padding(

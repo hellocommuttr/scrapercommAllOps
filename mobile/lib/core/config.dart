@@ -12,6 +12,10 @@ abstract final class AppConfig {
   /// Golden Arrow's own site: fares, disruptions, lost property and complaints belong
   /// there, not with Commuttr. We link to it rather than copying contact details that
   /// could go stale.
+  /// Where to send somebody who has not got Commuttr yet. Shared with the app, so it has
+  /// to be an address that works in a browser; set SHARE_URL per build to change it.
+  static const shareUrl = String.fromEnvironment('SHARE_URL', defaultValue: 'https://commuttr.co.za');
+
   static const goldenArrowUrl = 'https://www.gabs.co.za';
 
   /// Commuttr's support phone line and live-chat link. Set these in `env/<flavor>.json`
@@ -38,8 +42,10 @@ abstract final class AppConfig {
     if (kIsWeb) {
       // Served by the Spring app itself: same origin. From `flutter run -d chrome` the
       // page lives on a random port, so fall back to the API's default port.
+      // Over HTTPS it is the API behind a proxy or tunnel (ngrok, a deployment), where
+      // the port is 443 and "localhost" would be the phone itself.
       final origin = Uri.base.origin;
-      return Uri.base.port == 8000 ? origin : 'http://localhost:8000';
+      return Uri.base.port == 8000 || Uri.base.scheme == 'https' ? origin : 'http://localhost:8000';
     }
     // The Android emulator reaches the host machine through 10.0.2.2.
     if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:8000';

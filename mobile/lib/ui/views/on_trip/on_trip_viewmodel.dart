@@ -183,7 +183,7 @@ class OnTripViewModel extends ReactiveViewModel {
     return j.trip == null
         ? "${place == 'station' ? 'Station' : 'Stop'} times for this trip aren't saved yet, "
               "so there's nothing to time the reminder from."
-        : 'Too late for a reminder — the $place before yours is already past its scheduled time.';
+        : 'Too late for a reminder. The $place before yours is already past its scheduled time.';
   }
 
   Future<void> share() async {
@@ -200,14 +200,14 @@ class OnTripViewModel extends ReactiveViewModel {
   String shareSummary(PlannedJourney j) {
     final approx = j.approx ? ' (approx.)' : '';
     return [
-      'My ${j.operator.vehicle} trip — ${serviceName(j)}',
+      'My ${j.operator.vehicle} trip: ${serviceName(j)}',
       'From: ${j.from.displayName}',
       'To: ${j.to.displayName}',
       'Date: ${formatDate(j.date, withYear: false)}',
       'Scheduled departure: ${j.boardTime}$approx',
       if (j.arriveTime != null) 'Scheduled arrival: ${j.arriveTime}$approx',
       '',
-      'Scheduled times — shared from Commuttr',
+      'Scheduled times, shared from Commuttr',
     ].join('\n');
   }
 

@@ -129,8 +129,10 @@ class SupportService {
       SharePlus.instance.share(ShareParams(text: text, subject: subject));
 
   Future<void> shareApp() => shareText(
-    'I use Commuttr to check Golden Arrow bus times in Cape Town — it works offline too.',
-    subject: 'Commuttr',
+    'I use Commuttr to check Golden Arrow, MyCiTi and Metrorail times in Cape Town. '
+    'It works offline once a trip has been looked up.\n\n'
+    'Get it here: ${AppConfig.shareUrl}',
+    subject: 'Commuttr: bus and train times for Cape Town',
   );
 
   // ---------------------------------------------------------------- the commuter's data

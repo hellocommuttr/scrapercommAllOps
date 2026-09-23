@@ -162,7 +162,7 @@ class NearbyStopsView extends StackedView<NearbyStopsViewModel> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            ok ? '${stop.name} saved as $label' : "This ${stop.kindWord} can't be saved — it has no location.",
+            ok ? '${stop.name} saved as $label' : "This ${stop.kindWord} can't be saved. It has no location.",
           ),
         ),
       );

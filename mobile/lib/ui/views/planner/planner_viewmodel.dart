@@ -66,7 +66,7 @@ class PlannerViewModel extends ReactiveViewModel {
   /// Who runs the day's journeys: "Golden Arrow", "Metrorail", "Bus & train", or "—".
   String get transportMode {
     final ops = {for (final j in _all) j.operator};
-    if (ops.isEmpty) return '—';
+    if (ops.isEmpty) return '-';
     if (ops.length == 1) return ops.first.name;
     final kinds = {for (final o in ops) o.kind};
     return kinds.length > 1 ? 'Bus & train' : (kinds.first == 'train' ? 'Trains' : 'Buses');
@@ -122,14 +122,14 @@ class PlannerViewModel extends ReactiveViewModel {
   /// Schedule a "time to leave" notification. Returns the message to show.
   Future<String> remind(PlannedJourney j) async {
     if (!_reminders.isSupported) {
-      return 'Reminders need the Commuttr Android or iOS app — the web version cannot notify you.';
+      return 'Reminders need the Commuttr Android or iOS app. The web version cannot notify you.';
     }
     final allowed = await _reminders.requestPermission();
     if (!allowed) return 'Allow notifications for Commuttr in your phone settings to get reminders.';
     final lead = _settings.reminderLeadMinutes;
     final ok = await _reminders.scheduleLeave(j, lead);
     if (!ok) {
-      return 'Too late for a reminder — the ${j.boardTime} ${j.operator.vehicle} is scheduled '
+      return 'Too late for a reminder. The ${j.boardTime} ${j.operator.vehicle} is scheduled '
           'less than $lead min from now.';
     }
     await _planner.setReminder(j.id, lead);
