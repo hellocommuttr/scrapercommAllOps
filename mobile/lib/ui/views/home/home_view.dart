@@ -198,6 +198,18 @@ class HomeView extends StackedView<HomeViewModel> {
     return '${con.legs.length} $word';
   }
 
+  /// The vehicle for a journey with a change: its own, when every leg is the same kind,
+  /// and the interchange arrows when they are not.
+  ///
+  /// Two trains are a train journey and two buses a bus one. A journey that is both is
+  /// neither, and drawing it as a bus would be a small lie about the half of it that is a
+  /// train - so it gets the symbol for changing instead.
+  static IconData _connectionIcon(Connection con) {
+    final kinds = {for (final l in con.legs) l.operator.kind};
+    if (kinds.length != 1) return Icons.multiple_stop;
+    return transitIcon(con.legs.first.operator);
+  }
+
   List<Widget> _connections(BuildContext context, HomeViewModel vm, JourneySearchOutcome o) {
     final c = context.colors;
     final first = o.connections.first;
@@ -225,6 +237,39 @@ class HomeView extends StackedView<HomeViewModel> {
           onTap: () => vm.openConnection(con),
           child: Row(
             children: [
+              // The same duration block the direct routes carry, so the two lists can be
+              // read down one column. It was missing here, which left the one number a
+              // rider compares journeys by - how long this takes - buried in a line of
+              // small print while every card above it shouted it.
+              //
+              // The total, not a leg: riding, waiting at the change and riding again.
+              SizedBox(
+                width: 62,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: con.totalMinutes == null ? '–' : '${con.totalMinutes!.round()}',
+                            style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          TextSpan(text: ' min', style: context.text.bodySmall),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Icon(_connectionIcon(con), color: c.muted, size: 24),
+                  ],
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 62,
+                color: c.cardBorder,
+                margin: const EdgeInsets.only(right: 12),
+              ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,12 +299,9 @@ class HomeView extends StackedView<HomeViewModel> {
                     ),
                     // What separates one of these from the next is the wait at the change,
                     // so it belongs on the card and not only inside it.
-                    if (con.totalMinutes != null || con.waitMinutes != null)
+                    if (con.waitMinutes != null)
                       Text(
-                        [
-                          if (con.totalMinutes != null) formatDuration(con.totalMinutes!),
-                          if (con.waitMinutes != null) '${formatDuration(con.waitMinutes!)} waiting',
-                        ].join(' · '),
+                        '${formatDuration(con.waitMinutes!)} waiting',
                         style: TextStyle(color: (con.waitMinutes ?? 0) > 60 ? c.accentText : c.muted, fontSize: 12),
                       ),
                     // What each ride costs, so the total beside it can be checked.
