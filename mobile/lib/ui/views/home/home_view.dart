@@ -714,15 +714,6 @@ class _PlannerCard extends StatelessWidget {
             ],
           ),
         ),
-        PopupMenuButton<String>(
-          tooltip: 'More',
-          icon: const Icon(Icons.more_vert),
-          onSelected: (v) => v == 'view' ? vm.openPlanned() : vm.openPlanner(),
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'view', child: Text('View trip')),
-            PopupMenuItem(value: 'planner', child: Text('Open planner')),
-          ],
-        ),
       ],
     );
     return Column(
@@ -732,44 +723,57 @@ class _PlannerCard extends StatelessWidget {
           padding: pagePadding,
           child: AppCard(
             onTap: vm.openPlanned,
-            padding: const EdgeInsets.fromLTRB(16, 14, 4, 16),
-            child: Stack(
+            padding: const EdgeInsets.fromLTRB(16, 6, 8, 16),
+            child: Column(
               children: [
-                Positioned(
-                  right: 12,
-                  top: 4,
-                  child: Text('${j.operator.name} ${j.routeNumber}', style: TextStyle(color: accent, fontSize: 13)),
-                ),
-                Column(
+                // On its own line with the menu, not floated over the card: as a
+                // Positioned it ran under the three dots and off the edge, so a
+                // Metrorail line came out as "Metrorail Souther".
+                Row(
                   children: [
-                    stop('1', j.from.displayName, 'Departs ${j.boardTime}  •  ${stopLine(j.from)}'),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 13),
-                        child: SizedBox(height: 18, child: CustomPaint(painter: _DashPainter(accent))),
+                    Expanded(
+                      child: Text(
+                        // "Metrorail Southern line", as the rest of the app words it.
+                        '${j.operator.name} ${j.routeNumber}${j.operator.isTrain ? ' line' : ''}',
+                        style: TextStyle(color: accent, fontSize: 13),
+                        textAlign: TextAlign.right,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    stop(
-                      '2',
-                      j.to.displayName,
-                      j.arriveTime == null ? 'Arrival not published' : 'Arrives ${j.arriveTime}',
-                    ),
-                    const SizedBox(height: 14),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: vm.startingJourney ? null : vm.startPlanned,
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [Spacer(), Text('Start journey'), Spacer(), Icon(Icons.arrow_forward)],
-                          ),
-                        ),
-                      ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      tooltip: 'More',
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (v) => v == 'view' ? vm.openPlanned() : vm.openPlanner(),
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'view', child: Text('View trip')),
+                        PopupMenuItem(value: 'planner', child: Text('Open planner')),
+                      ],
                     ),
                   ],
+                ),
+                stop('1', j.from.displayName, 'Departs ${j.boardTime}  •  ${stopLine(j.from)}'),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 13),
+                    child: SizedBox(height: 18, child: CustomPaint(painter: _DashPainter(accent))),
+                  ),
+                ),
+                stop('2', j.to.displayName, j.arriveTime == null ? 'Arrival not published' : 'Arrives ${j.arriveTime}'),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: vm.startingJourney ? null : vm.startPlanned,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [Spacer(), Text('Start journey'), Spacer(), Icon(Icons.arrow_forward)],
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
