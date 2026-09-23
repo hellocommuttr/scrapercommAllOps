@@ -762,6 +762,9 @@ class Connection {
   final String dayType;
   final List<String> changeAt;
   final List<ConnectionLeg> legs;
+
+  /// Whose journey this is: "gabs", "metrorail", or both where a trip ever mixes them.
+  String get operatorKey => (legs.map((l) => l.operator.code).toSet().toList()..sort()).join('+');
   final int? waitMinutes;
   final int? totalMinutes;
   final Fare? fare;

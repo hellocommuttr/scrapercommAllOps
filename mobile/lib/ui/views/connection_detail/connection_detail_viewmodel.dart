@@ -31,6 +31,12 @@ class ConnectionDetailViewModel extends BaseViewModel {
       to: leg.to,
       date: date,
       option: PlanOption(
+        // Whose ride this is. Left out, it defaulted to Golden Arrow, so opening the
+        // train leg of a journey gave a screen headed "the whole bus trip", quoting
+        // Golden Arrow's timetables and saying no cash fare is published for a ride
+        // that costs R12.00.
+        operator: leg.operator,
+        fare: leg.fare,
         timetableNumber: leg.timetableNumber,
         routeLabel: leg.routeLabel,
         dayType: connection.dayType,

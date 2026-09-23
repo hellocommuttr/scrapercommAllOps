@@ -202,9 +202,11 @@ class HomeView extends StackedView<HomeViewModel> {
     final c = context.colors;
     final first = o.connections.first;
     final changeAt = first.changeAt.map(titleCase).join(' then ');
-    final shown = vm.showAllConnections ? o.connections : o.connections.take(1);
+    // One per operator, as the direct routes above do. See bestConnectionPerOperator.
+    final headline = o.bestConnectionPerOperator;
+    final shown = vm.showAllConnections ? o.connections : headline;
     final weekday = dayTypeFor(o.date) == DayType.weekday;
-    final more = o.connections.length - 1;
+    final more = o.connections.length - headline.length;
     return [
       const SizedBox(height: 2),
       SectionHeader('Journeys with a change', padding: const EdgeInsets.fromLTRB(0, 18, 0, 10)),

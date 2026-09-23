@@ -283,6 +283,20 @@ class JourneySearchOutcome {
     ];
   }
 
+  /// The same for journeys with a change: the soonest on each operator.
+  ///
+  /// One card, and "view 16 more ways", hid every train behind a bus. Buh Rein to Kalk
+  /// Bay showed three Golden Arrow buses taking 3h30m, with two trains doing it in 2h09m
+  /// for R14 inside the button. What is worth hiding is another way to make the same trip
+  /// on the same network, never the only way to make it on a different one.
+  List<Connection> get bestConnectionPerOperator {
+    final seen = <String>{};
+    return [
+      for (final c in connections)
+        if (seen.add(c.operatorKey)) c,
+    ];
+  }
+
   Ride? get firstBus => allDay.isEmpty ? null : allDay.first;
   Ride? get lastBus => allDay.isEmpty ? null : allDay.last;
 
