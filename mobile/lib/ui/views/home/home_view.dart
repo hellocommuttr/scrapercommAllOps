@@ -735,6 +735,10 @@ class _PlannerCard extends StatelessWidget {
                 // On its own line with the menu, not floated over the card: as a
                 // Positioned it ran under the three dots and off the edge, so a
                 // Metrorail line came out as "Metrorail Souther".
+                //
+                // Left, on the card's own edge, with the stop numbers and the button
+                // below it. Right-aligned it started a second column of one, and the
+                // journey beneath read as though it had been pushed out of line.
                 Row(
                   children: [
                     Expanded(
@@ -742,7 +746,6 @@ class _PlannerCard extends StatelessWidget {
                         // "Metrorail Southern line", as the rest of the app words it.
                         '${j.operator.name} ${j.routeNumber}${j.operator.isTrain ? ' line' : ''}',
                         style: TextStyle(color: accent, fontSize: 13),
-                        textAlign: TextAlign.right,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
