@@ -392,6 +392,16 @@ void main() {
 
 /// Answers from a map of full request keys ("path?sorted=query"), recording what was asked.
 class _FakeApi implements CommuttrApi {
+
+  /// What the app reported about usage: the server cannot see cached or picker searches.
+  final List<Map<String, Object?>> posts = [];
+  String? deviceId;
+
+  @override
+  Future<void> post(String path, Map<String, Object?> body) async => posts.add({'path': path, ...body});
+
+  @override
+  void identify({String? deviceId, String? client}) => this.deviceId = deviceId;
   final Map<String, String> bodies = {};
   final List<String> paths = [];
 
@@ -407,6 +417,16 @@ class _FakeApi implements CommuttrApi {
 }
 
 class _NoApi implements CommuttrApi {
+
+  /// What the app reported about usage: the server cannot see cached or picker searches.
+  final List<Map<String, Object?>> posts = [];
+  String? deviceId;
+
+  @override
+  Future<void> post(String path, Map<String, Object?> body) async => posts.add({'path': path, ...body});
+
+  @override
+  void identify({String? deviceId, String? client}) => this.deviceId = deviceId;
   @override
   Future<String> getRaw(String path, [Map<String, String>? query]) =>
       throw const ApiException(ApiFailure.offline, 'offline');

@@ -17,6 +17,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Answers from a map of path -> body, or fails as if the phone were offline.
 class FakeApi implements CommuttrApi {
+
+  /// What the app reported about usage: the server cannot see cached or picker searches.
+  final List<Map<String, Object?>> posts = [];
+  String? deviceId;
+
+  @override
+  Future<void> post(String path, Map<String, Object?> body) async => posts.add({'path': path, ...body});
+
+  @override
+  void identify({String? deviceId, String? client}) => this.deviceId = deviceId;
   final Map<String, String> bodies = {};
   bool offline = false;
   int calls = 0;

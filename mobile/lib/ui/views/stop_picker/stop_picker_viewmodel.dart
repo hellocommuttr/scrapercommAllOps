@@ -34,6 +34,7 @@ class StopPickerViewModel extends BaseViewModel {
   (double, double)? myLocation;
 
   Timer? _debounce;
+  Timer? _reportDebounce;
   int _geoRequest = 0;
 
   Future<void> init() async {
@@ -52,9 +53,17 @@ class StopPickerViewModel extends BaseViewModel {
   void onQueryChanged(String value) {
     query = value;
     _debounce?.cancel();
+    _reportDebounce?.cancel();
+    _reportDebounce?.cancel();
     unawaited(_searchStops());
     addresses = [];
     addressMessage = null;
+    // Once typing stops, not per keystroke: "k", "kr", "kra" is one search by a person.
+    if (value.trim().length >= 2) {
+      _reportDebounce = Timer(const Duration(milliseconds: 900), () {
+        _journeys.reportPlaceSearch(query.trim(), stops.length + addresses.length);
+      });
+    }
     if (value.trim().length >= 3) {
       // The address search goes through our API to OpenStreetMap, which allows about one
       // request a second — so wait until typing pauses.
@@ -125,7 +134,13 @@ class StopPickerViewModel extends BaseViewModel {
     if (e != null) _nav.back(result: e);
   }
 
-  void pickEndpoint(Endpoint e) => _nav.back(result: e);
+  void pickEndpoint(Endpoint e) {
+    _reportDebounce?.cancel();
+    if (query.trim().length >= 2) {
+      _journeys.reportPlaceSearch(query.trim(), stops.length + addresses.length, chosenStopId: e.id);
+    }
+    _nav.back(result: e);
+  }
 
   void pickAddress(GeoHit h) => _nav.back(
     result: Endpoint.pin(name: h.name, lat: h.lat, lon: h.lon),
@@ -142,6 +157,7 @@ class StopPickerViewModel extends BaseViewModel {
   @override
   void dispose() {
     _debounce?.cancel();
+    _reportDebounce?.cancel();
     super.dispose();
   }
 }

@@ -5,6 +5,7 @@ import 'package:stacked/stacked.dart';
 import 'package:stacked_services/stacked_services.dart';
 
 import '../../../app/app.locator.dart';
+import '../../../data/api/commuttr_api.dart';
 import '../../../app/app.router.dart';
 import '../../../services/connectivity_service.dart';
 import '../../../services/inbox_service.dart';
@@ -28,6 +29,12 @@ class StartupViewModel extends BaseViewModel {
     rebuildUi();
     try {
       await _settings.load();
+      // Who is asking, for counting people rather than searches. An id this app made,
+      // and nothing else; sharing off means nothing is sent and the id is forgotten.
+      locator<CommuttrApi>().identify(
+        deviceId: await _settings.ensureInstallId(),
+        client: _settings.shareUsage ? 'app' : null,
+      );
       final firstRun = _settings.dataVersion == null;
       if (firstRun) {
         status = 'Loading bus and train timetables…';

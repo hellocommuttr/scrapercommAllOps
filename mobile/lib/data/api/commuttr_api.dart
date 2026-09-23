@@ -43,6 +43,14 @@ class ApiException implements Exception {
 abstract interface class CommuttrApi {
   /// GET [path] with [query]; returns the raw response body.
   Future<String> getRaw(String path, [Map<String, String>? query]);
+
+  /// POST [body] as JSON, for the usage the server cannot see for itself. Best effort:
+  /// it never throws, because nothing a rider is doing depends on it.
+  Future<void> post(String path, Map<String, Object?> body);
+
+  /// Sent with every request while the rider leaves sharing on: an id this app made, and
+  /// which front end is asking. Null clears them.
+  void identify({String? deviceId, String? client});
 }
 
 class HttpCommuttrApi implements CommuttrApi {
@@ -56,13 +64,42 @@ class HttpCommuttrApi implements CommuttrApi {
   final http.Client _client;
   final String _baseUrl;
   final Duration timeout;
+  String? _deviceId;
+  String? _client_;
+
+  @override
+  void identify({String? deviceId, String? client}) {
+    _deviceId = deviceId;
+    _client_ = client;
+  }
+
+  Map<String, String> get _headers => {
+    'Accept': 'application/json',
+    'X-Commuttr-Device': ?_deviceId,
+    'X-Commuttr-Client': ?_client_,
+  };
+
+  @override
+  Future<void> post(String path, Map<String, Object?> body) async {
+    try {
+      await _client
+          .post(
+            Uri.parse('$_baseUrl$path'),
+            headers: {..._headers, 'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (_) {
+      // Usage is never worth an error on a commuter's screen.
+    }
+  }
 
   @override
   Future<String> getRaw(String path, [Map<String, String>? query]) async {
     final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: query);
     final http.Response res;
     try {
-      res = await _client.get(uri, headers: const {'Accept': 'application/json'}).timeout(timeout);
+      res = await _client.get(uri, headers: _headers).timeout(timeout);
     } on TimeoutException {
       throw const ApiException(ApiFailure.offline, 'The request timed out.', timedOut: true);
     } on http.ClientException catch (e) {

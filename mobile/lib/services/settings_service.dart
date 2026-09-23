@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 
@@ -79,6 +81,40 @@ class SettingsService with ListenableServiceMixin {
   Future<void> setReduceMotion(bool v) => _set('reduce_motion', v ? 'true' : null);
 
   /// Push-style notification switches for the in-app inbox and reminders.
+  /// Whether this phone helps us count how the network is used. On by default, and the
+  /// whole of what it sends is described in the privacy policy: no name, no account, and
+  /// an id this app made that the rider can throw away by turning this off.
+  bool get shareUsage => _get('share_usage') != 'false';
+  Future<void> setShareUsage(bool v) async {
+    await _set('share_usage', '$v');
+    // Off means forgotten, not merely silent: the next time it goes on, this phone is a
+    // new one as far as any count is concerned.
+    if (!v) await _set('install_id', null);
+  }
+
+  /// A random value made on first launch, so two searches from this phone can be counted
+  /// as one person without anybody knowing who. Null while sharing is off.
+  String? get installId => shareUsage ? _get('install_id') : null;
+  Future<String?> ensureInstallId() async {
+    if (!shareUsage) return null;
+    final existing = _get('install_id');
+    if (existing != null && existing.isNotEmpty) return existing;
+    final made = _randomId();
+    await _set('install_id', made);
+    return made;
+  }
+
+  static String _randomId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final r = Random.secure();
+    return List.generate(24, (_) => chars[r.nextInt(chars.length)]).join();
+  }
+
+  /// Searches the app answered from its saved copy while offline, waiting for a
+  /// connection to be reported. Capped, and dropped entirely when sharing is off.
+  String? get pendingUsage => shareUsage ? _get('pending_usage') : null;
+  Future<void> setPendingUsage(String? v) => _set('pending_usage', v);
+
   bool get notifyJourneyUpdates => _get('notify_journey') != 'false';
   Future<void> setNotifyJourneyUpdates(bool v) => _set('notify_journey', '$v');
   bool get notifyTimetableUpdates => _get('notify_timetable') != 'false';

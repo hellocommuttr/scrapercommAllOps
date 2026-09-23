@@ -130,6 +130,10 @@ const _privacy = LegalDocument(
       '• Server logs: like most web services, the Commuttr server logs the requests it receives, including your IP '
           'address, the time and what was searched.',
       '• Reports and emails: what you choose to send us, including your email address.',
+      '• How the network is used: which trips and places are searched, how many results came back, and an id this '
+          'app makes on first launch. The id is a random value. It is not a device identifier, it is not linked to '
+          'your name, number, email or account, and it exists so that ten searches from one phone are not counted '
+          'as ten people. You can stop all of this and forget the id in Preferences, under Privacy.',
       'Your location is used only when you tap "Use my location" or "Nearby stops", and only with your permission. '
           'It is used on your device to find nearby stops and is not stored or sent to us, unless you choose to '
           'search from a map point, which is sent as a trip search.',
@@ -140,17 +144,28 @@ const _privacy = LegalDocument(
       '• To plan your trips and find the places you search for.',
       '• To run the service, fix problems and prevent abuse (server logs).',
       '• To answer your reports and emails and improve Commuttr.',
+      '• To measure how Cape Town travels: which trips, places and routes are searched, at what times, and where '
+          'people look for a service that does not exist. We may publish or sell this as counts and patterns, and '
+          'we may share it with transport operators, the City of Cape Town and researchers, so that planning is '
+          'based on what commuters actually look for.',
+      'What is sold or shared is always counts and patterns, never you. It carries no name, number, email, account '
+          'or IP address, and never the id this app made. Before anything leaves us it is grouped so that no row '
+          'describes one person or one phone, and we do not attempt to identify anybody from it or allow anyone '
+          'else to.',
       'We do not use your information for advertising or profiling. Commuttr is a general-audience travel tool and '
           'does not knowingly collect information from children.',
     ]),
     LegalSection('Sharing Your Information', [
-      '• We do not sell, rent or trade your information.',
+      '• We never sell, rent or trade your personal information, and there is none attached to a name here to '
+          'sell. We do sell and share aggregate counts and patterns, as described above.',
       '• Place-name searches are forwarded by our server to OpenStreetMap Nominatim to find the place. Nominatim '
           'receives the search text from our server, not your IP address.',
       '• When maps are shown, map tiles are downloaded from OpenStreetMap servers, which see your IP address, as for '
           'any website. You can turn maps off in Preferences.',
-      '• Commuttr has no advertising, no third-party trackers and no analytics SDKs.',
-      '• We do not share your information with Golden Arrow, Metrorail, PRASA, MyCiTi or the City of Cape Town.',
+      '• Commuttr has no advertising, no third-party trackers and no analytics SDKs. How the network is used is '
+          'counted by our own server, and by nobody else.',
+      '• We may share aggregate counts with Golden Arrow, Metrorail, PRASA, MyCiTi, the City of Cape Town and '
+          'others. We do not share your searches, your reports or anything about you individually with them.',
       '• We will disclose information only if the law requires us to.',
     ]),
     LegalSection('Data Security', [
@@ -159,6 +174,10 @@ const _privacy = LegalDocument(
       'Because there is no account, there is no profile of you on our server to lose. Server logs are used only for '
           'the purposes above, are available only to the people who run Commuttr, and are kept for up to 90 days '
           'and then deleted.',
+      // OPERATOR TO CONFIRM: set a job that strips device ids older than 12 months, so
+      // the sentence below stays true without anybody having to remember.
+      'Searches recorded for counting carry no IP address. The id this app made is kept for up to 12 months and '
+          'then removed from those rows, which leaves the counts and takes away the thread between them.',
       'Information on your device is protected by your device\'s own security, such as its screen lock. Backup files '
           'you export are not encrypted, so keep them somewhere safe.',
     ]),

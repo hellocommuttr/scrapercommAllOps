@@ -443,6 +443,19 @@ class JourneyService {
     return out;
   }
 
+  /// What somebody looked for in the stop list, which runs on the phone and so was never
+  /// knowable: a place nobody can find is a gap in the network, or a name we spell
+  /// differently from the people who use it. Sent after the fact, never awaited, and only
+  /// while the rider leaves sharing on.
+  void reportPlaceSearch(String query, int resultCount, {int? chosenStopId}) {
+    _api.reportUsage({
+      'kind': 'place_search',
+      'query': query,
+      'result_count': resultCount,
+      'chosen_stop_id': ?chosenStopId,
+    });
+  }
+
   /// Trips with one change. Either end may be a stop or a map pin.
   Future<Cached<ConnectionsResponse>> connections(Endpoint from, Endpoint to) => _api.get(
     '/api/connections',

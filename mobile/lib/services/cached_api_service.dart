@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -72,13 +73,72 @@ class CachedApiService {
       _connectivity.reportSuccess();
       final parsed = parse(jsonDecode(body) as Json);
       await _write(key, body, pin: pin);
+      unawaited(_flushPending());
       return Cached(parsed, fromCache: false, fetchedAt: DateTime.now());
     } on ApiException catch (e) {
       if (e.failure != ApiFailure.offline) rethrow;
       _connectivity.reportOffline(timedOut: e.timedOut);
       final hit = await _read(key);
       if (hit == null) throw const NotAvailableOffline();
-      return Cached(parse(jsonDecode(hit.body) as Json), fromCache: true, fetchedAt: _at(hit.fetchedAt));
+      final json = jsonDecode(hit.body) as Json;
+      // A trip answered from the phone is a trip somebody made, and the server never
+      // sees it: offline is exactly when nothing can be sent. So it waits here and goes
+      // with the next request that gets through.
+      unawaited(_queueOffline(path, query, json));
+      return Cached(parse(json), fromCache: true, fetchedAt: _at(hit.fetchedAt));
+    }
+  }
+
+  /// Best effort and never awaited: usage is not worth a rider's time or an error.
+  void reportUsage(Map<String, Object?> event) {
+    if (!_settings.shareUsage) return;
+    unawaited(_api.post('/api/usage', event));
+  }
+
+  /// How many answers a saved response held, for the count sent later.
+  static int _countIn(Json json) {
+    final options = json['options'] ?? json['connections'];
+    return options is List ? options.length : 0;
+  }
+
+  /// Remembered, not sent: there is no connection at this moment by definition.
+  Future<void> _queueOffline(String path, Map<String, String>? query, Json json) async {
+    if (!_settings.shareUsage || (path != '/api/plan' && path != '/api/connections')) return;
+    final pending = _pending()
+      ..add({
+        'kind': 'cached_search',
+        'endpoint': path,
+        'result_count': _countIn(json),
+        if (query?['from'] != null) 'from': int.tryParse(query!['from']!),
+        if (query?['to'] != null) 'to': int.tryParse(query!['to']!),
+        if (query?['from_lat'] != null) 'from_lat': double.tryParse(query!['from_lat']!),
+        if (query?['from_lon'] != null) 'from_lon': double.tryParse(query!['from_lon']!),
+        if (query?['to_lat'] != null) 'to_lat': double.tryParse(query!['to_lat']!),
+        if (query?['to_lon'] != null) 'to_lon': double.tryParse(query!['to_lon']!),
+      });
+    // A phone offline for a week should not come back with a thousand of these.
+    while (pending.length > 50) {
+      pending.removeAt(0);
+    }
+    await _settings.setPendingUsage(jsonEncode(pending));
+  }
+
+  List<Map<String, Object?>> _pending() {
+    final raw = _settings.pendingUsage;
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      return (jsonDecode(raw) as List).cast<Map<String, Object?>>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _flushPending() async {
+    final pending = _pending();
+    if (pending.isEmpty || !_settings.shareUsage) return;
+    await _settings.setPendingUsage(null);
+    for (final event in pending) {
+      await _api.post('/api/usage', event);
     }
   }
 

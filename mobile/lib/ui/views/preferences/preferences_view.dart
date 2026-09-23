@@ -107,6 +107,22 @@ class PreferencesView extends StackedView<PreferencesViewModel> {
                 ),
               ],
             ),
+            const SectionHeader('Privacy'),
+            _Group(
+              children: [
+                SwitchListTile(
+                  secondary: const Icon(Icons.insights_outlined),
+                  title: const Text('Help count how the network is used'),
+                  subtitle: Text(
+                    'Sends which trips and places are searched, with an id this app made. '
+                    'No name, no account, and nothing about you. Off forgets the id.',
+                    style: TextStyle(color: context.colors.muted),
+                  ),
+                  value: vm.shareUsage,
+                  onChanged: vm.setShareUsage,
+                ),
+              ],
+            ),
             const SectionHeader('Travel'),
             _Group(
               children: [

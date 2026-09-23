@@ -677,7 +677,7 @@ Widget _mycitiFare(BuildContext context, Fare f, bool peak, String? since, Strin
 /// and passes, or Golden Arrow's GO EASY bundles. Public so a test can read what a rider
 /// reads.
 class FareCard extends StatelessWidget {
-  const FareCard({required this.fare, required this.operator, this.peak = false});
+  const FareCard({super.key, required this.fare, required this.operator, this.peak = false});
 
   final Fare? fare;
   final OperatorRef operator;

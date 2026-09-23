@@ -157,7 +157,7 @@
   {
     "topic": "Account & Profile",
     "q": "What does Commuttr send over the internet?",
-    "a": "When you search, the stops or map points you chose go to the Commuttr server to work out your trip. Place-name searches are passed on to OpenStreetMap to find the place, and maps are loaded from OpenStreetMap. Your location is only used when you tap \"Use my location\" or \"Nearby stops\". There are no ads and no trackers. See the Privacy Policy for details."
+    "a": "When you search, the stops or map points you chose go to the Commuttr server to work out your trip. Place-name searches are passed on to OpenStreetMap to find the place, and maps are loaded from OpenStreetMap. Your location is only used when you tap \"Use my location\" or \"Nearby stops\". Commuttr also counts which trips and places are searched, with a random id this app made that is not linked to you, so we can tell how many people use a route rather than how many searches happen; those counts are shared and sold to operators and planners as totals, never as anything about you. Turn it off in Preferences under Privacy. There are no ads and no trackers. See the Privacy Policy for details."
   },
   {
     "topic": "Account & Profile",

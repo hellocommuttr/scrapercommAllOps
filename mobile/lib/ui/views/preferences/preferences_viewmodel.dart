@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 
 import '../../../app/app.locator.dart';
+import '../../../data/api/commuttr_api.dart';
 import '../../../services/reminder_service.dart';
 import '../../../services/settings_service.dart';
 
@@ -63,6 +64,19 @@ class PreferencesViewModel extends ReactiveViewModel {
 
   bool get showMaps => _settings.showMaps;
   Future<void> setShowMaps(bool v) => _settings.setShowMaps(v);
+
+  bool get shareUsage => _settings.shareUsage;
+
+  /// Turning it off stops anything being sent and forgets the id, so the API is told at
+  /// once rather than on the next launch.
+  Future<void> setShareUsage(bool v) async {
+    await _settings.setShareUsage(v);
+    locator<CommuttrApi>().identify(
+      deviceId: v ? await _settings.ensureInstallId() : null,
+      client: v ? 'app' : null,
+    );
+    rebuildUi();
+  }
 
   int get arriveEarly => _settings.arriveEarlyMinutes;
   Future<void> setArriveEarly(int v) => _settings.setArriveEarlyMinutes(v);
