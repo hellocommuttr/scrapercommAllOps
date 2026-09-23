@@ -122,12 +122,12 @@
   {
     "topic": "Payments & Wallet",
     "q": "Where can I see fares?",
-    "a": "With the trip, where the operator publishes one. For trains it is Metrorail's single ticket price, with the return, weekly and monthly prices under \"About this fare\". For MyCiTi it is the fare for your distance, peak or saver depending on when you travel, with the day, 3-day, 7-day and monthly passes. Golden Arrow publishes no price for a single trip, so none is shown; open the trip to see its Gold Card weekly and monthly prices."
+    "a": "With the trip, where the operator publishes one. For trains it is Metrorail's single ticket price, with the return, weekly and monthly prices under \"About this fare\". For MyCiTi it is the fare for your distance, peak or saver depending on when you travel, with the day, 3-day, 7-day and monthly passes. Golden Arrow publishes no price for a single trip, so none is shown; open the trip to see its Gold Card GO EASY prices, which are bundles of 5, 10 or 48 rides."
   },
   {
     "topic": "Payments & Wallet",
     "q": "Why is there no price for my bus?",
-    "a": "Golden Arrow does not publish what one trip costs in cash, so Commuttr shows no price rather than guess. Ask the driver, or see gabs.co.za. Open the trip to see Golden Arrow's Gold Card weekly and monthly prices, which are published. MyCiTi and Metrorail fares are shown with the trip."
+    "a": "Golden Arrow does not publish what one trip costs in cash, so Commuttr shows no price rather than guess. Ask the driver, or see gabs.co.za. Open the trip to see Golden Arrow's GO EASY prices, which are published: 5, 10 or 48 rides loaded onto a Gold Card, one price whatever the distance. MyCiTi and Metrorail fares are shown with the trip."
   },
   {
     "topic": "Payments & Wallet",
@@ -137,7 +137,7 @@
   {
     "topic": "Payments & Wallet",
     "q": "Where do I buy a ticket?",
-    "a": "Metrorail tickets (single, return, weekly and monthly) are bought at the station before you board. Golden Arrow's Gold Card is loaded with a weekly or monthly GO EASY product; see gabs.co.za for where to buy and load one. MyCiTi is paid with a myconnect card, which you tap on the way in and out. See www.myciti.org.za. Commuttr sells no tickets for buses or trains."
+    "a": "Metrorail tickets (single, return, weekly and monthly) are bought at the station before you board. Golden Arrow's Gold Card is loaded with GO EASY rides, in bundles of 5, 10 or 48; see gabs.co.za for where to buy and load one. MyCiTi is paid with a myconnect card, which you tap on the way in and out. See www.myciti.org.za. Commuttr sells no tickets for buses or trains."
   },
   {
     "topic": "Account & Profile",

@@ -110,16 +110,29 @@ void main() {
         'fare': {'cash_cents': 4450},
       });
       expect(bus.fare, isNull);
-      // Gold Card weekly and monthly are published, so those are kept for the trip screen.
+      // The GO EASY bundles are published, so those are kept for the trip screen. They
+      // are counts of rides - 5, 10 and 48 - not a week's or a month's travel.
       final goldCard = PlanOption.fromJson({
         'timetable_number': '001501',
         'route_label': 'CAPE TOWN - KRAAIFONTEIN',
         'operator_code': 'gabs',
-        'fare': {'cash_cents': 4450, 'weekly_cents': 24850, 'monthly_cents': 109300, 'basis': 'go_easy'},
+        'fare': {
+          'cash_cents': 4450,
+          'five_ride_cents': 13400,
+          'weekly_cents': 24850,
+          'monthly_cents': 109300,
+          'basis': 'go_easy',
+        },
       });
       expect(goldCard.fare!.cashCents, isNull);
+      expect(goldCard.fare!.fiveRideCents, 13400);
       expect(goldCard.fare!.weeklyCents, 24850);
       expect(goldCard.fare!.monthlyCents, 109300);
+      // R134.00 / 5 = R26.80 a ride, R248.50 / 10 = R24.85, R1,093 / 48 = R22.77: the
+      // per-ride figures the screen shows beside each bundle.
+      expect(formatRands(goldCard.fare!.fiveRideCents! ~/ 5), 'R26.80');
+      expect(formatRands(goldCard.fare!.weeklyCents! ~/ 10), 'R24.85');
+      expect(formatRands(goldCard.fare!.monthlyCents! ~/ 48), 'R22.77');
       final train = PlanOption.fromJson({
         'timetable_number': '',
         'route_label': 'Northern Line',

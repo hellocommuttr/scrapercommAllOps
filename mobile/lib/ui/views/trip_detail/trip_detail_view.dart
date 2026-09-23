@@ -226,7 +226,7 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
               ),
             ],
             const SectionHeader('Fare', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),
-            _FareCard(
+            FareCard(
               fare: vm.fare,
               operator: vm.operator,
               peak: isMycitiPeak(weekday: dayTypeFor(vm.date) == DayType.weekday, boardMinutes: vm.boardMinutes),
@@ -549,15 +549,24 @@ class _StopRow extends StatelessWidget {
   }
 }
 
-/// Golden Arrow: no price for one trip, because none is published, and the Gold Card
-/// products that are. Shown here on the trip rather than on the results card, where a
-/// weekly price beside a single journey would read as what that journey costs.
+/// Golden Arrow: no price for one trip, because none is published, and the GO EASY
+/// bundles that are. Shown here on the trip rather than on the results card, where a
+/// bundle price beside a single journey would read as what that journey costs.
+///
+/// These are counts of RIDES, not periods of time. This screen called them "Gold Card
+/// weekly, any number of trips that week" and "monthly, any number of trips that month",
+/// which is a different product from the one Golden Arrow sells: 10 rides for R248.50 and
+/// 48 rides for R1,093, used whenever the rider likes. Somebody commuting twice a day
+/// would have run out on the Friday of the second week believing they had paid for the
+/// month. The five-ride bundle was not shown at all, though its price has always been in
+/// the data.
 Widget _goldCard(BuildContext context, Fare f) {
   final c = context.colors;
   final products = [
-    ('Gold Card weekly', 'any number of trips that week', f.weeklyCents),
-    ('Gold Card monthly', 'any number of trips that month', f.monthlyCents),
-  ].where((p) => p.$3 != null).toList();
+    (5, f.fiveRideCents),
+    (10, f.weeklyCents),
+    (48, f.monthlyCents),
+  ].where((p) => p.$2 != null).toList();
   return AppCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,21 +579,23 @@ Widget _goldCard(BuildContext context, Fare f) {
           style: context.text.bodySmall?.copyWith(color: c.muted),
         ),
         const SizedBox(height: 12),
-        Text('Gold Card', style: context.text.titleSmall),
-        for (final (label, what, cents) in products)
+        Text('Gold Card: GO EASY rides', style: context.text.titleSmall),
+        for (final (rides, cents) in products)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Row(
               children: [
-                Expanded(child: Text('$label · $what')),
-                Text(formatRands(cents!), style: const TextStyle(fontWeight: FontWeight.w600)),
+                Expanded(child: Text('$rides rides · ${formatRands(cents! ~/ rides)} a ride')),
+                Text(formatRands(cents), style: const TextStyle(fontWeight: FontWeight.w600)),
               ],
             ),
           ),
         const SizedBox(height: 8),
         Text(
-          'GO EASY is one price whatever the distance, loaded onto a Gold Card. '
-          'Last published prices; they may have changed.',
+          'Rides are loaded onto a Gold Card and used whenever you travel, at one price '
+          'whatever the distance. Not valid to or from Atlantis, Darling, Dassenberg, '
+          'Mamre, Pella, Malmesbury, Koeberg Power Station, Melkbosstrand, Fisantekraal, '
+          'Wellington, Paarl or Stellenbosch. Last published prices; they may have changed.',
           style: context.text.bodySmall?.copyWith(color: c.muted),
         ),
       ],
@@ -662,8 +673,11 @@ Widget _mycitiFare(BuildContext context, Fare f, bool peak, String? since, Strin
 
 /// The published cash fare, the rules behind it, and — for trains — the tickets sold at
 /// the station. Says plainly when nothing is published rather than showing a card price.
-class _FareCard extends StatelessWidget {
-  const _FareCard({required this.fare, required this.operator, this.peak = false});
+/// The fare block on a trip: cash where the operator publishes one, MyCiTi's two fares
+/// and passes, or Golden Arrow's GO EASY bundles. Public so a test can read what a rider
+/// reads.
+class FareCard extends StatelessWidget {
+  const FareCard({required this.fare, required this.operator, this.peak = false});
 
   final Fare? fare;
   final OperatorRef operator;
@@ -718,7 +732,7 @@ class _FareCard extends StatelessWidget {
     final f = fare;
     final cash = f?.cashCents;
     if (f != null && cash == null && !operator.isTrain && !f.isMyciti &&
-        (f.weeklyCents != null || f.monthlyCents != null)) {
+        (f.fiveRideCents != null || f.weeklyCents != null || f.monthlyCents != null)) {
       return _goldCard(context, f);
     }
     if (f == null || cash == null) {

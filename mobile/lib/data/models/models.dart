@@ -63,6 +63,7 @@ class Fare {
     this.cashCents,
     this.cashEffectiveFrom,
     this.returnCents,
+    this.fiveRideCents,
     this.weeklyCents,
     this.weeklySatCents,
     this.monthlyCents,
@@ -82,6 +83,7 @@ class Fare {
       cashCents: _i(v['cash_cents']),
       cashEffectiveFrom: _s(v['cash_effective_from']),
       returnCents: _i(v['return_cents']),
+      fiveRideCents: _i(v['five_ride_cents']),
       weeklyCents: _i(v['weekly_cents']),
       weeklySatCents: _i(v['weekly_sat_cents']),
       monthlyCents: _i(v['monthly_cents']),
@@ -99,6 +101,12 @@ class Fare {
   final int? cashCents;
   final String? cashEffectiveFrom;
   final int? returnCents;
+
+  /// Golden Arrow's GO EASY bundles, which are counts of rides and not periods of time:
+  /// 5 rides, 10 rides and 48 rides. They are held in the columns Metrorail's weekly and
+  /// monthly tickets use, because the operator's own fare table has always had three
+  /// products in those three slots.
+  final int? fiveRideCents;
   final int? weeklyCents;
   final int? weeklySatCents;
   final int? monthlyCents;
@@ -125,11 +133,12 @@ class Fare {
   /// A MyCiTi fare, priced by distance band with a peak and a saver price.
   bool get isMyciti => basis == 'myciti_distance';
 
-  /// The same fare without a price for one trip, keeping the products sold by the week
-  /// and the month. Golden Arrow publishes no cash fare, so no single ride can be priced,
-  /// but its Gold Card weekly and monthly prices are published and worth showing.
+  /// The same fare without a price for one trip, keeping the bundles of rides. Golden
+  /// Arrow publishes no cash fare, so no single ride can be priced, but its GO EASY
+  /// prices are published and worth showing.
   Fare get withoutSingleTrip => Fare(
     cashEffectiveFrom: cashEffectiveFrom,
+    fiveRideCents: fiveRideCents,
     weeklyCents: weeklyCents,
     weeklySatCents: weeklySatCents,
     monthlyCents: monthlyCents,
@@ -140,8 +149,9 @@ class Fare {
     kind: kind,
   );
 
-  /// Anything to show at all: a price for the trip, or a weekly or monthly product.
-  bool get hasAnything => cashCents != null || weeklyCents != null || monthlyCents != null;
+  /// Anything to show at all: a price for the trip, or a bundle of rides.
+  bool get hasAnything =>
+      cashCents != null || fiveRideCents != null || weeklyCents != null || monthlyCents != null;
 }
 
 /// MyCiTi's peak: a journey starting on a weekday from 06:45 to 08:00 or 16:15 to 17:30.
@@ -505,12 +515,12 @@ String? unofficialStopAdviceFor(String boardLabel, String alightLabel, OperatorR
 ///
 /// Not Golden Arrow. It does not publish cash fares across the network, and what the API
 /// holds is a cash price for a handful of routes: a rider shown R44.50 may be charged
-/// something else at the door, and a wrong price is worse than none. Its Gold Card weekly
-/// and monthly prices are published, and those are shown with the trip.
+/// something else at the door, and a wrong price is worse than none. Its GO EASY ride
+/// bundles are published, and those are shown with the trip.
 bool pricesShownFor(OperatorRef operator) => operator.code != OperatorRef.goldenArrow.code;
 
-/// The fare to keep for this operator: all of it, or for Golden Arrow only the products
-/// sold by the week and the month. Null when nothing is left worth showing.
+/// The fare to keep for this operator: all of it, or for Golden Arrow only the bundles
+/// of rides. Null when nothing is left worth showing.
 Fare? fareShownFor(OperatorRef operator, Fare? fare) {
   if (fare == null) return null;
   final kept = pricesShownFor(operator) ? fare : fare.withoutSingleTrip;
