@@ -128,6 +128,18 @@ class TripDetailView extends StackedView<TripDetailViewModel> {
                 ],
               ),
             ),
+            if (vm.timetableExpiredOn case final lapsed?) ...[
+              const SizedBox(height: 12),
+              InfoBanner(
+                tone: BannerTone.warning,
+                icon: Icons.event_busy_outlined,
+                message:
+                    'These times come from a timetable that ended on '
+                    '${formatDate(ServiceDate.parse(lapsed))}. ${vm.operator.name} has not published a newer one '
+                    'that we have, so the service may have changed. Check with ${vm.operator.name} before you '
+                    'rely on it.',
+              ),
+            ],
             if (unofficialStopAdviceFor(vm.boardLabel, vm.alightLabel, vm.operator) case final advice?) ...[
               const SizedBox(height: 12),
               InfoBanner(tone: BannerTone.warning, icon: Icons.warning_amber_rounded, message: advice),

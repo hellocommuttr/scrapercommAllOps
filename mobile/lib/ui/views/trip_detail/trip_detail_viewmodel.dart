@@ -304,6 +304,9 @@ class TripDetailViewModel extends BaseViewModel {
   Future<void> openOperatorTimetables() =>
       _support.openUrl(AppConfig.timetablesUrlFor(operator.code));
 
+  /// When the timetable behind this trip has lapsed and nothing newer is held.
+  String? get timetableExpiredOn => ride?.option.timetableExpiredOn;
+
   void report() => _nav.navigateToReportIssueView(
     report: ReportContext(
       fromName: from.name,

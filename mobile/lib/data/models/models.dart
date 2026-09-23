@@ -398,6 +398,7 @@ class PlanOption {
     required this.alightLabel,
     this.operator = OperatorRef.goldenArrow,
     this.fare,
+    this.timetableExpiredOn,
     this.boardAwayM,
     this.alightAwayM,
   });
@@ -425,6 +426,7 @@ class PlanOption {
       alightLabel: _s(j['alight_label']) ?? '',
       operator: operator,
       fare: fareShownFor(operator, Fare.fromJson(j['fare'])),
+      timetableExpiredOn: _s(j['timetable_expired_on']),
       boardAwayM: _i(j['board_away_m']),
       alightAwayM: _i(j['alight_away_m']),
     );
@@ -449,6 +451,10 @@ class PlanOption {
   final Fare? fare;
 
   /// How far the boarding / alighting point is from where the rider asked, in metres.
+  /// The day this timetable stopped being valid, when we hold nothing newer for the
+  /// service. Null in the normal case, where what we have is current.
+  final String? timetableExpiredOn;
+
   final int? boardAwayM;
   final int? alightAwayM;
 
@@ -477,6 +483,7 @@ class PlanOption {
     alightLabel: alightLabel,
     operator: operator,
     fare: fare,
+    timetableExpiredOn: timetableExpiredOn,
     boardAwayM: boardAwayM ?? this.boardAwayM,
     alightAwayM: alightAwayM ?? this.alightAwayM,
   );
