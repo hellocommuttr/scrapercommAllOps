@@ -89,8 +89,8 @@ class ProfileViewModel extends ReactiveViewModel {
   }
 
   Future<int?> _stopsNear(Endpoint? e) async {
-    if (e == null) return null;
-    final near = await _reference.nearestStops(e.lat, e.lon, limit: 200);
+    if (e == null || !e.hasPosition) return null;
+    final near = await _reference.nearestStops(e.lat!, e.lon!, limit: 200);
     return near.where((s) => s.$2 <= nearbyRadiusMetres).length;
   }
 

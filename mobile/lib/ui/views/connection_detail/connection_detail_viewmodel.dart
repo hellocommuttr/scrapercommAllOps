@@ -22,12 +22,13 @@ class ConnectionDetailViewModel extends BaseViewModel {
 
   late final List<Ride?> rides = connection.legs.map(_rideFor).toList();
 
+  /// Null only when the leg has no boarding time to open it at. A stop whose position we
+  /// do not know is still a stop: every leg of a journey opens.
   Ride? _rideFor(ConnectionLeg leg) {
-    final from = leg.from, to = leg.to;
-    if (from == null || to == null || leg.boardMinutes == null) return null;
+    if (leg.boardMinutes == null) return null;
     return Ride(
-      from: from,
-      to: to,
+      from: leg.from,
+      to: leg.to,
       date: date,
       option: PlanOption(
         timetableNumber: leg.timetableNumber,

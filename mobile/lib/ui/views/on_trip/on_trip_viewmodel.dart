@@ -146,6 +146,8 @@ class OnTripViewModel extends ReactiveViewModel {
     if (j == null) return;
     final next = progress?.nextStop;
     final (lat, lon) = next != null && next.hasLocation ? (next.lat!, next.lon!) : (j.to.lat, j.to.lon);
+    // Nowhere to open: neither the next stop nor the destination has a position.
+    if (lat == null || lon == null) return;
     final la = lat.toStringAsFixed(5), lo = lon.toStringAsFixed(5);
     await _support.openUrl('https://www.openstreetmap.org/?mlat=$la&mlon=$lo#map=17/$la/$lo');
   }

@@ -243,7 +243,13 @@ class HomeView extends StackedView<HomeViewModel> {
                       '${titleCase(con.legs.first.fromName)} → ${titleCase(con.legs.last.toName)}',
                       style: TextStyle(color: c.muted),
                     ),
-                    Text('1 change at ${con.changeAt.map(titleCase).join(', ')}', style: TextStyle(color: c.muted)),
+                    // "1 change" whatever the journey: three buses have two changes, and
+                    // this card said one while listing both stops.
+                    Text(
+                      '${con.changeAt.length == 1 ? '1 change' : '${con.changeAt.length} changes'} at '
+                      '${con.changeAt.map(titleCase).join(', ')}',
+                      style: TextStyle(color: c.muted),
+                    ),
                     // What separates one of these from the next is the wait at the change,
                     // so it belongs on the card and not only inside it.
                     if (con.totalMinutes != null || con.waitMinutes != null)

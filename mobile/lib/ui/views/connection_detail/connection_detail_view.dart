@@ -27,7 +27,7 @@ class ConnectionDetailView extends StackedView<ConnectionDetailViewModel> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trip with one change')),
+      appBar: AppBar(title: Text(legs.length > 2 ? 'Trip with ${legs.length - 1} changes' : 'Trip with one change')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
@@ -48,8 +48,7 @@ class ConnectionDetailView extends StackedView<ConnectionDetailViewModel> {
               const ScheduledDisclaimer(
                 extra: 'A late first ride can mean missing the second, so leave extra time at the change.',
               ),
-              if (connection.fare?.isMyciti == true &&
-                  connection.priceOn(weekday: weekday) != null) ...[
+              if (connection.fare?.isMyciti == true && connection.priceOn(weekday: weekday) != null) ...[
                 const SizedBox(height: 8),
                 InfoBanner(
                   icon: Icons.payments_outlined,
@@ -92,14 +91,11 @@ class ConnectionDetailView extends StackedView<ConnectionDetailViewModel> {
                             const SizedBox(height: 4),
                             RouteBadge(routeNumber: leg.routeNumber, operator: leg.operator),
                             const SizedBox(height: 8),
-                            Text(
-                              '${leg.boardTime}  ${leg.from?.displayName ?? titleCase(leg.fromName)}',
-                              style: context.text.titleSmall,
-                            ),
+                            Text('${leg.boardTime}  ${leg.from.displayName}', style: context.text.titleSmall),
                             const SizedBox(height: 2),
                             Text(
                               '${leg.arriveTime ?? 'time not published'}'
-                              '  ${leg.to?.displayName ?? titleCase(leg.toName)}',
+                              '  ${leg.to.displayName}',
                               style: context.text.titleSmall,
                             ),
                           ],

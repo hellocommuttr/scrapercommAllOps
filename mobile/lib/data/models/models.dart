@@ -168,13 +168,13 @@ class Endpoint {
   const Endpoint.stop({
     required int this.id,
     required this.name,
-    required this.lat,
-    required this.lon,
+    this.lat,
+    this.lon,
     this.operatorCode,
     this.operatorKind,
   }) : kind = EndpointKind.stop;
 
-  const Endpoint.pin({required this.name, required this.lat, required this.lon})
+  const Endpoint.pin({required this.name, required double this.lat, required double this.lon})
     : kind = EndpointKind.pin,
       id = null,
       operatorCode = null,
@@ -185,8 +185,8 @@ class Endpoint {
       : Endpoint.stop(
           id: _i(j['id'])!,
           name: _s(j['name']) ?? '',
-          lat: _d(j['lat'])!,
-          lon: _d(j['lon'])!,
+          lat: _d(j['lat']),
+          lon: _d(j['lon']),
           operatorCode: _s(j['operator_code']),
           operatorKind: _s(j['operator_kind']),
         );
@@ -194,8 +194,15 @@ class Endpoint {
   final EndpointKind kind;
   final int? id;
   final String name;
-  final double lat;
-  final double lon;
+
+  /// Null for the 48 stops whose position the timetables never gave us and no geocoder
+  /// could place: Town Centre is one, and it is on 1,097 schedules. A stop with no
+  /// position is still a stop a rider boards at, so it is still an endpoint - it simply
+  /// cannot be drawn on a map.
+  final double? lat;
+  final double? lon;
+
+  bool get hasPosition => lat != null && lon != null;
 
   /// Whose stop this is. Null for pins, and for stops saved before trains were added
   /// (those were all Golden Arrow's).
@@ -214,12 +221,12 @@ class Endpoint {
   Map<String, String> query(String prefix) => isStop
       ? {prefix: '$id'}
       : {
-          '${prefix}_lat': lat.toStringAsFixed(4),
-          '${prefix}_lon': lon.toStringAsFixed(4),
+          '${prefix}_lat': lat!.toStringAsFixed(4),
+          '${prefix}_lon': lon!.toStringAsFixed(4),
           if (name.trim().isNotEmpty) '${prefix}_name': name.trim(),
         };
 
-  String get cacheKey => isStop ? 's$id' : 'p${lat.toStringAsFixed(4)},${lon.toStringAsFixed(4)}';
+  String get cacheKey => isStop ? 's$id' : 'p${lat!.toStringAsFixed(4)},${lon!.toStringAsFixed(4)}';
 
   Json toJson() => {
     'kind': kind.name,
@@ -386,27 +393,31 @@ class PlanOption {
   });
 
   factory PlanOption.fromJson(Json j) {
-    final operator = OperatorRef.from(_s(j['operator_code']), name: _s(j['operator_name']), kind: _s(j['operator_kind']));
+    final operator = OperatorRef.from(
+      _s(j['operator_code']),
+      name: _s(j['operator_name']),
+      kind: _s(j['operator_kind']),
+    );
     return PlanOption(
-    timetableNumber: _s(j['timetable_number']) ?? '',
-    routeLabel: _s(j['route_label']) ?? '',
-    dayType: _s(j['day_type']) ?? '',
-    dayLabel: _s(j['day_label']) ?? '',
-    segmentStops: _list(j['segment_stops']).map(PlanSegmentStop.fromJson).toList(),
-    roadPath: ((j['road_path'] as List?) ?? const [])
-        .map((p) => ((p as List).cast<num>()))
-        .map((p) => (p[0].toDouble(), p[1].toDouble()))
-        .toList(),
-    departures: _list(j['departures']).map(PlanDeparture.fromJson).toList(),
-    boardApprox: j['board_approx'] == true,
-    alightApprox: j['alight_approx'] == true,
-    boardLabel: _s(j['board_label']) ?? '',
-    alightLabel: _s(j['alight_label']) ?? '',
-    operator: operator,
-    fare: fareShownFor(operator, Fare.fromJson(j['fare'])),
-    boardAwayM: _i(j['board_away_m']),
-    alightAwayM: _i(j['alight_away_m']),
-  );
+      timetableNumber: _s(j['timetable_number']) ?? '',
+      routeLabel: _s(j['route_label']) ?? '',
+      dayType: _s(j['day_type']) ?? '',
+      dayLabel: _s(j['day_label']) ?? '',
+      segmentStops: _list(j['segment_stops']).map(PlanSegmentStop.fromJson).toList(),
+      roadPath: ((j['road_path'] as List?) ?? const [])
+          .map((p) => ((p as List).cast<num>()))
+          .map((p) => (p[0].toDouble(), p[1].toDouble()))
+          .toList(),
+      departures: _list(j['departures']).map(PlanDeparture.fromJson).toList(),
+      boardApprox: j['board_approx'] == true,
+      alightApprox: j['alight_approx'] == true,
+      boardLabel: _s(j['board_label']) ?? '',
+      alightLabel: _s(j['alight_label']) ?? '',
+      operator: operator,
+      fare: fareShownFor(operator, Fare.fromJson(j['fare'])),
+      boardAwayM: _i(j['board_away_m']),
+      alightAwayM: _i(j['alight_away_m']),
+    );
   }
 
   /// Golden Arrow's timetable number ("000101"); empty for trains, which have none.
@@ -703,27 +714,26 @@ class ConnectionLeg {
   /// Null when no arrival time is published.
   String? get arriveTime => arriveMinutes == null ? null : _hhmm(arriveMinutes!);
 
-  Endpoint? get from => fromLat == null || fromLon == null
-      ? null
-      : Endpoint.stop(
-          id: fromStopId,
-          name: fromName,
-          lat: fromLat!,
-          lon: fromLon!,
-          operatorCode: operator.code,
-          operatorKind: operator.kind,
-        );
+  /// The stop itself, whether or not we know where it is. It used to be null without a
+  /// position, which closed the leg: a trip through Town Centre could be read on the
+  /// results screen and not opened, because that one stop is unplaced on the map.
+  Endpoint get from => Endpoint.stop(
+    id: fromStopId,
+    name: fromName,
+    lat: fromLat,
+    lon: fromLon,
+    operatorCode: operator.code,
+    operatorKind: operator.kind,
+  );
 
-  Endpoint? get to => toLat == null || toLon == null
-      ? null
-      : Endpoint.stop(
-          id: toStopId,
-          name: toName,
-          lat: toLat!,
-          lon: toLon!,
-          operatorCode: operator.code,
-          operatorKind: operator.kind,
-        );
+  Endpoint get to => Endpoint.stop(
+    id: toStopId,
+    name: toName,
+    lat: toLat,
+    lon: toLon,
+    operatorCode: operator.code,
+    operatorKind: operator.kind,
+  );
 }
 
 class Connection {

@@ -177,10 +177,7 @@ class Ride {
       String km(int m) => m < 1000 ? '$m m' : '${(m / 1000).toStringAsFixed(1)} km';
       final board = option.boardAwayM ?? 0;
       final alight = option.alightAwayM ?? 0;
-      return [
-        if (board >= 50) '${km(board)} to the stop',
-        if (alight >= 50) '${km(alight)} from the stop',
-      ].join(', ');
+      return [if (board >= 50) '${km(board)} to the stop', if (alight >= 50) '${km(alight)} from the stop'].join(', ');
     }
     final minutes = (walkM / 80).ceil();
     return walkM < 1000 ? '$walkM m walk' : '$minutes min walk';
@@ -350,10 +347,12 @@ class JourneyService {
     Set<String> alreadyShown,
   ) async {
     if (!from.isStop && !to.isStop) return const [];
+    // A stop we cannot place cannot stand for the place it is at.
+    if (!from.hasPosition || !to.hasPosition) return const [];
     try {
       final res = await plan(
-        Endpoint.pin(name: from.name, lat: from.lat, lon: from.lon),
-        Endpoint.pin(name: to.name, lat: to.lat, lon: to.lon),
+        Endpoint.pin(name: from.name, lat: from.lat!, lon: from.lon!),
+        Endpoint.pin(name: to.name, lat: to.lat!, lon: to.lon!),
       );
       return res.data.options
           .where(
@@ -396,11 +395,14 @@ class JourneyService {
     // A place is where the rider named: a station called "Khayelitsha" is Khayelitsha,
     // though the map puts the suburb nearer Nonkqubela. Same-named stops win over nearest.
     Future<Map<String, (Endpoint, double)>> ends(Endpoint e) async => {
-      for (final (s, m) in await _ref.nearestStopPerOperator(e.lat, e.lon, maxMetres: maxNearestStopM.toDouble()))
-        if (s.endpoint != null) s.operatorCode: (s.endpoint!, m),
+      // Nothing near a stop with no position: what is near it is not knowable. It still
+      // stands for itself on its own operator, below.
+      if (e.hasPosition)
+        for (final (s, m) in await _ref.nearestStopPerOperator(e.lat!, e.lon!, maxMetres: maxNearestStopM.toDouble()))
+          if (s.endpoint != null) s.operatorCode: (s.endpoint!, m),
       if (!e.isStop)
         // No walk: the rider named it, and the suburb's point on the map is not where they are.
-        for (final (s, _) in await _ref.stopsNamed(e.name, e.lat, e.lon))
+        for (final (s, _) in await _ref.stopsNamed(e.name, e.lat!, e.lon!))
           if (s.endpoint != null) s.operatorCode: (s.endpoint!, 0.0),
       if (e.isStop && e.operatorCode != null) e.operatorCode!: (e, 0.0),
     };
