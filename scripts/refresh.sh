@@ -4,9 +4,11 @@
 #   ./scripts/refresh.sh            # every operator
 #   ./scripts/refresh.sh gabs       # one of them
 #
-# Weekly, in crontab, with the output kept:
+# Fortnightly, in crontab, with the output kept. The 1st and the 15th rather than an
+# interval, because cron has no fortnight and */14 on the day of the month restarts every
+# month; these two dates are predictable and never drift:
 #
-#   0 3 * * 0 cd /srv/scrapercomm && ./scripts/refresh.sh >> data/refresh-logs/cron.log 2>&1
+#   0 3 1,15 * * cd /srv/scrapercomm && ./scripts/refresh.sh >> data/refresh-logs/cron.log 2>&1
 #
 # Exits 1 if a step failed and 2 if everything ran but the data is still stale, so a
 # scheduler that reports failures reports this one.
@@ -29,12 +31,27 @@ step() {
   fi
 }
 
-if ! docker exec gabs_pg psql -U gabs -d gabs -c "SELECT 1" >/dev/null 2>&1; then
-  echo "The database container is not running. Start it with: docker compose up -d" | tee -a "$log"
-  exit 1
+# Where the database is. On a development machine it is the docker container; in
+# production it is whatever DATABASE_URL points at, which is usually managed Postgres with
+# no container to exec into. Use psql directly when there is a URL and a psql to give it
+# to, and fall back to the container otherwise, so a developer's machine needs no change.
+#
+# The loaders read DATABASE_URL themselves (gabs_scraper.config), so setting that one
+# variable moves this whole script onto the production database.
+if [ -n "${DATABASE_URL:-}" ] && command -v psql >/dev/null 2>&1; then
+  sql() { psql "$DATABASE_URL" -At -c "$1"; }
+  where="DATABASE_URL"
+else
+  sql() { docker exec "${CONTAINER:-gabs_pg}" psql -U gabs -d gabs -At -c "$1"; }
+  where="container ${CONTAINER:-gabs_pg}"
 fi
 
-sql() { docker exec gabs_pg psql -U gabs -d gabs -At -c "$1"; }
+if ! sql "SELECT 1" >/dev/null 2>&1; then
+  echo "No database answering at $where." | tee -a "$log"
+  echo "Locally: docker compose up -d. On a server: export DATABASE_URL and install psql." | tee -a "$log"
+  exit 1
+fi
+echo "database: $where" | tee -a "$log"
 
 # On the record before it starts, so the dashboard shows a run in progress and an
 # interrupted load leaves an unfinished row rather than silence.
@@ -51,13 +68,26 @@ case " ${operators[*]} " in *" myciti "*)
   # The City publishes every MyCiTi stop with its coordinates; none has to be guessed at.
   step "myciti positions" python -m myciti_scraper.official_positions --fix
 ;; esac
-case " ${operators[*]} " in *" metrorail "*) step "metrorail" python -m prasa_scraper.pipeline ;; esac
+# prasa_scraper.sheets, not prasa_scraper.pipeline. PRASA publishes every Cape Town
+# timetable as a spreadsheet, where the times are real values; the pipeline beside it reads
+# the PDFs by OCR and is the fallback for services published only as images. The sheets
+# give all 16 timetables both ways including Saturdays, the OCR path 6 inbound-only ones -
+# so a refresh that ran the OCR path would quietly take away every homeward train.
+case " ${operators[*]} " in *" metrorail "*) step "metrorail" python -m prasa_scraper.sheets ;; esac
+
+# The planner's precomputed floors and ceilings are a pure function of the departures any
+# of the three loaders just wrote, so they are rebuilt once here rather than recomputed on
+# every search. Stale, it would answer with the last load's times - so it runs every time,
+# whichever operator ran. It reports and does nothing if the view has not been created.
+step "planner context" python -m gabs_scraper.context --fix
 
 # Built FROM the stops a load creates, so they come after it.
 step "stop positions" python -m gabs_scraper.repair_positions
 step "stops with no position" python -m gabs_scraper.place_missing --fix
 step "station positions" python -m prasa_scraper.repair_positions --fix
 step "areas" python -m gabs_scraper.areas --from-stops
+# The policy promises the anonymous id is cleared after twelve months; this keeps it true.
+step "forget old ids" python -m gabs_scraper.retention --fix
 # Repairs delete the road paths they invalidate, so this redraws them.
 step "road paths" python -m gabs_scraper.geometry
 
@@ -78,7 +108,9 @@ detail=""
 [ -z "$detail" ] && [ "$stale" -ne 0 ] && detail="ran, but the data is still older than its limits"
 ok=$([ ${#failed[@]} -eq 0 ] && [ "$stale" -eq 0 ] && echo true || echo false)
 
-sql "UPDATE refresh_run SET finished_at = now(), ok = $ok, detail = nullif('${detail//'/''}', ''), log_path = '$log' WHERE id = $run_id" >/dev/null
+# Doubled quotes, so a step name with an apostrophe in it cannot end the SQL string.
+detail_sql=$(printf '%s' "$detail" | sed "s/'/''/g")
+sql "UPDATE refresh_run SET finished_at = now(), ok = $ok, detail = nullif('$detail_sql', ''), log_path = '$log' WHERE id = $run_id" >/dev/null
 # Whatever the outcome, a request from the dashboard has been acted on; the run row says how.
 sql "UPDATE refresh_request SET done_at = now(), run_id = $run_id WHERE done_at IS NULL" >/dev/null
 

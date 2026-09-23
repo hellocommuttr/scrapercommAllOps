@@ -8,9 +8,9 @@
 # a third of its timetables already ended - while every screen in the app looked exactly
 # as confident as it does with fresh data.
 #
-# Schedule it weekly (see README, "Keeping the data fresh"):
+# Schedule it fortnightly (see README, "Keeping the data fresh"):
 #
-#   schtasks /create /tn "Commuttr refresh" /sc weekly /d SUN /st 03:00 ^
+#   schtasks /create /tn "Commuttr refresh" /sc weekly /mo 2 /d SUN /st 03:00 ^
 #     /tr "powershell -ExecutionPolicy Bypass -File C:\path\to\scrapercomm\scripts\refresh.ps1"
 #
 # It is safe to run at any time: each loader upserts, and the API reads whatever is
@@ -46,16 +46,30 @@ function Step($name, [scriptblock] $work) {
     }
 }
 
-# The database has to be up before anything else is worth trying.
-Step "database" { docker exec gabs_pg psql -U gabs -d gabs -c "SELECT 1" }
-if ($failed.Count -gt 0) {
-    "The database container is not running. Start it with: docker compose up -d" | Tee-Object -FilePath $log -Append
-    exit 1
-}
+# Where the database is. On a development machine it is the docker container; in
+# production it is whatever DATABASE_URL points at, which is usually managed Postgres with
+# no container to exec into. Use psql directly when there is a URL and a psql to give it
+# to, and fall back to the container otherwise, so a developer's machine needs no change.
+#
+# The loaders read DATABASE_URL themselves (gabs_scraper.config), so setting that one
+# variable moves this whole script onto the production database.
+$container = if ($env:CONTAINER) { $env:CONTAINER } else { "gabs_pg" }
+$direct = $env:DATABASE_URL -and (Get-Command psql -ErrorAction SilentlyContinue)
+$dbWhere = if ($direct) { "DATABASE_URL" } else { "container $container" }
 
 function Sql($statement) {
-    docker exec gabs_pg psql -U gabs -d gabs -At -c $statement
+    if ($direct) { psql $env:DATABASE_URL -At -c $statement }
+    else { docker exec $container psql -U gabs -d gabs -At -c $statement }
 }
+
+# The database has to be up before anything else is worth trying.
+Step "database" { Sql "SELECT 1" }
+if ($failed.Count -gt 0) {
+    "No database answering at $dbWhere." | Tee-Object -FilePath $log -Append
+    "Locally: docker compose up -d. On a server: set DATABASE_URL and install psql." | Tee-Object -FilePath $log -Append
+    exit 1
+}
+"database: $dbWhere" | Tee-Object -FilePath $log -Append
 
 # The run goes on the record before it starts, so the dashboard can show one in progress
 # and, if this machine dies mid-load, an unfinished row rather than silence.
@@ -74,13 +88,27 @@ if ($Operators -contains "myciti") {
     # be guessed at: this places the ones OpenStreetMap does not have.
     Step "myciti positions" { python -m myciti_scraper.official_positions --fix }
 }
-if ($Operators -contains "metrorail") { Step "metrorail" { python -m prasa_scraper.pipeline } }
+# prasa_scraper.sheets, not prasa_scraper.pipeline. PRASA publishes every Cape Town
+# timetable as a spreadsheet, where the times are real values; the pipeline beside it reads
+# the PDFs by OCR and is the fallback for services published only as images. The sheets
+# give all 16 timetables both ways including Saturdays, the OCR path 6 inbound-only ones -
+# so a refresh that ran the OCR path would quietly take away every homeward train.
+if ($Operators -contains "metrorail") { Step "metrorail" { python -m prasa_scraper.sheets } }
+
+# The planner's precomputed floors and ceilings are a pure function of the departures any
+# of the three loaders just wrote, so they are rebuilt once here rather than recomputed on
+# every search. Stale, it would answer with the last load's times - so it runs every time,
+# whichever operator ran. It reports and does nothing if the view has not been created.
+Step "planner context" { python -m gabs_scraper.context --fix }
 
 # Positions and areas are built FROM the stops a load creates, so they come after it.
 Step "stop positions" { python -m gabs_scraper.repair_positions }
 Step "stops with no position" { python -m gabs_scraper.place_missing --fix }
 Step "station positions" { python -m prasa_scraper.repair_positions --fix }
 Step "areas" { python -m gabs_scraper.areas --from-stops }
+# The privacy policy promises the anonymous id is cleared after twelve months. This is
+# the job that keeps that sentence true.
+Step "forget old ids" { python -m gabs_scraper.retention --fix }
 # Repairs delete the road paths they invalidate, so this redraws them.
 Step "road paths" { python -m gabs_scraper.geometry }
 
