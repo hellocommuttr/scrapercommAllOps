@@ -528,10 +528,23 @@ class JourneyService {
     // by train, and a rider looking for the train was told there was none.
     try {
       final c = await connections(from, to);
-      final dt = outcome.dayType == DayType.publicHoliday ? DayType.sunday : outcome.dayType;
       // A connection is offered only when every leg's operator is switched on.
       final allowed = c.data.connections.where((x) => x.legs.every((l) => filters.allows(l.operator))).toList();
-      final forDay = allowed.where((x) => DayType.fromApi(x.dayType) == dt).toList()..sort(_bySoonest);
+      // The same rule the direct rides follow: a public holiday has its own timetable, and
+      // Sunday is the fallback only where a route has none.
+      //
+      // This mapped the holiday to Sunday unconditionally, so on a public holiday a journey
+      // with a change never looked at the holiday timetable at all - and then said "no
+      // Sunday service on this trip" while listing Public holiday among the days it runs,
+      // which is both wrong and reads as a contradiction. Metrorail now publishes holiday
+      // timetables, so this hides real trains rather than nothing.
+      var dt = outcome.dayType;
+      var forDay = allowed.where((x) => DayType.fromApi(x.dayType) == dt).toList();
+      if (dt == DayType.publicHoliday && forDay.isEmpty) {
+        dt = DayType.sunday;
+        forDay = allowed.where((x) => DayType.fromApi(x.dayType) == dt).toList();
+      }
+      forDay.sort(_bySoonest);
       outcome = outcome.withConnections(
         sortConnections(
           forDay
@@ -542,8 +555,15 @@ class JourneyService {
         allDayConnections: forDay,
         // Only when nothing runs straight through either is the rider stuck for the day.
         // With a direct service the day types already come from its own timetable.
+        // Never the days we just searched: offering the rider a day they are already on
+        // is what produced "no Sunday service ... runs on: Public holiday" on a holiday.
         otherDayTypes: !outcome.hasAnyDirectService && forDay.isEmpty
-            ? allowed.map((x) => DayType.fromApi(x.dayType)).whereType<DayType>().toSet().toList()
+            ? allowed
+                  .map((x) => DayType.fromApi(x.dayType))
+                  .whereType<DayType>()
+                  .where((d) => d != dt && d != outcome.dayType)
+                  .toSet()
+                  .toList()
             : null,
       );
     } catch (_) {
@@ -673,7 +693,14 @@ class JourneyService {
     }
 
     final otherDayTypes = options.isEmpty
-        ? allowed.map((o) => DayType.fromApi(o.dayType)).whereType<DayType>().toSet().toList()
+        ? allowed
+              .map((o) => DayType.fromApi(o.dayType))
+              .whereType<DayType>()
+              // Not the day we searched, nor the one we fell back to: both found nothing,
+              // so naming either as a day this trip runs is a contradiction.
+              .where((d) => d != dayType && d != wanted)
+              .toSet()
+              .toList()
         : const <DayType>[];
 
     return JourneySearchOutcome(

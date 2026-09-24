@@ -153,7 +153,12 @@ class HomeView extends StackedView<HomeViewModel> {
       return [
         EmptyState(
           icon: Icons.event_busy_outlined,
-          title: 'No ${o.dayType.label.toLowerCase()} service on this trip',
+          // The day the RIDER asked about, not the one we fell back to. On a public
+          // holiday this said "No sunday service on this trip", which is a fact about our
+          // fallback and not about their journey.
+          title: o.holidayFallback
+              ? 'No ${o.holidayName ?? 'public holiday'} service on this trip'
+              : 'No ${o.dayType.label.toLowerCase()} service on this trip',
           message: '${_cap(o.vehicles)} run on: ${o.otherDayTypes.map((d) => d.label).join(', ')}.',
           actionLabel: 'Change date',
           onAction: vm.openFilters,
@@ -243,8 +248,12 @@ class HomeView extends StackedView<HomeViewModel> {
               // small print while every card above it shouted it.
               //
               // The total, not a leg: riding, waiting at the change and riding again.
+              // Narrower than the 62 the direct cards use. A change card carries two
+              // operator badges and an arrow where a direct one carries a single badge, and
+              // at 62 they wrapped onto two lines on a 375px phone. The number still lines
+              // up down the column, which is the point of it.
               SizedBox(
-                width: 62,
+                width: 50,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -268,7 +277,7 @@ class HomeView extends StackedView<HomeViewModel> {
                 width: 1,
                 height: 62,
                 color: c.cardBorder,
-                margin: const EdgeInsets.only(right: 12),
+                margin: const EdgeInsets.only(right: 10),
               ),
               Expanded(
                 child: Column(
