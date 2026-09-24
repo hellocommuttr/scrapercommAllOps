@@ -46,17 +46,39 @@ class LocationService {
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.denied) return const LocationResult.failed(LocationProblem.denied);
       if (perm == LocationPermission.deniedForever) return const LocationResult.failed(LocationProblem.deniedForever);
-      final last = await Geolocator.getLastKnownPosition().catchError((_) => null);
-      final pos =
-          await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.medium,
-              timeLimit: Duration(seconds: 12),
-            ),
-          ).catchError((Object e) {
-            if (last != null) return last;
-            throw e;
-          });
+      // getLastKnownPosition is NOT supported on the web, and geolocator_web does not
+      // reject a future for it - it throws SYNCHRONOUSLY:
+      //
+      //   Future<Position> getLastKnownPosition({...}) => throw _unsupported(...)
+      //
+      // so there is no future for .catchError to attach to and the throw went straight
+      // past it to the catch below. Every web request for a location failed there, before
+      // getCurrentPosition was ever called, and the rider was told we could not get their
+      // location no matter what they allowed.
+      //
+      // A real try/catch rather than .catchError, because only that catches both.
+      Position? last;
+      if (!kIsWeb) {
+        try {
+          last = await Geolocator.getLastKnownPosition();
+        } catch (_) {
+          last = null;
+        }
+      }
+      Position pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 12),
+          ),
+        );
+      } catch (e) {
+        // A last known fix is better than nothing when the live one times out; on the web
+        // there is never one, so the failure is reported honestly instead.
+        if (last == null) rethrow;
+        pos = last;
+      }
       return LocationResult.ok(pos.latitude, pos.longitude);
     } catch (_) {
       return const LocationResult.failed(LocationProblem.unavailable);
