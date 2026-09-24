@@ -581,6 +581,16 @@ class JourneyService {
     } catch (_) {
       // Offline, or the API could not plan a change between these two. The direct rides
       // are still worth showing, so this never fails the search.
+      //
+      // But it must not read as an answer either. Swallowing this left the screen saying
+      // "No bus or train connects these two, even with one change" on the strength of a
+      // request that never came back - a denial invented out of a network error. Marked
+      // unfinished, the screen says it could not check and offers to try again.
+      outcome = outcome.withConnections(
+        const [],
+        allDayConnections: const [],
+        searchIncomplete: true,
+      );
     }
     return outcome;
   }
@@ -639,12 +649,37 @@ class JourneyService {
     final allowed = response.options.where((o) => filters.allows(o.operator)).toList();
     var options = allowed.where((o) => DayType.fromApi(o.dayType) == wanted).toList();
     var holidayFallback = false;
-    if (wanted == DayType.publicHoliday && options.isEmpty) {
-      // Golden Arrow normally runs its Sunday service on public holidays when a route has
-      // no holiday timetable. Shown with a banner telling people to confirm.
-      dayType = DayType.sunday;
-      holidayFallback = true;
-      options = allowed.where((o) => DayType.fromApi(o.dayType) == DayType.sunday).toList();
+    if (wanted == DayType.publicHoliday) {
+      // Per operator, because they do not all publish holiday timetables. Golden Arrow
+      // largely does; MyCiTi publishes none at all, network wide.
+      //
+      // Asked globally - "are there ANY holiday options?" - one operator having a holiday
+      // sheet answered yes for everybody, and every operator without one was dropped from
+      // the day entirely. On a public holiday in Cape Town that silently deleted MyCiTi
+      // from the app whenever a Golden Arrow route beside it had holiday times.
+      //
+      // So each operator gets its own answer: its holiday timetable when it has one, its
+      // Sunday service when it does not, which is what these operators actually run.
+      final picked = <PlanOption>[];
+      var anyFellBack = false;
+      for (final code in allowed.map((o) => o.operator.code).toSet()) {
+        final mine = allowed.where((o) => o.operator.code == code);
+        final holiday = mine.where((o) => DayType.fromApi(o.dayType) == DayType.publicHoliday);
+        if (holiday.isNotEmpty) {
+          picked.addAll(holiday);
+        } else {
+          final sunday = mine.where((o) => DayType.fromApi(o.dayType) == DayType.sunday);
+          if (sunday.isNotEmpty) anyFellBack = true;
+          picked.addAll(sunday);
+        }
+      }
+      options = picked;
+      holidayFallback = anyFellBack;
+      // Only call the whole day Sunday when nothing ran to a holiday timetable; otherwise
+      // it IS the holiday service, with Sunday filling the gaps.
+      if (anyFellBack && !picked.any((o) => DayType.fromApi(o.dayType) == DayType.publicHoliday)) {
+        dayType = DayType.sunday;
+      }
     }
 
     var hidden = 0;

@@ -20,7 +20,7 @@ import '../../bottom_sheets/filters/filters_sheet.dart';
 import '../../dialogs/onboarding/show_onboarding.dart';
 import '../../../services/reference_data_service.dart';
 
-enum SearchProblem { notSavedOffline, server, rejected }
+enum SearchProblem { notSavedOffline, server, rejected, busy }
 
 /// What the "Your planner" card shows: the next planned journey, or — when the planner is
 /// empty — the top recommended route, so "Start journey" is always one tap away.
@@ -292,7 +292,13 @@ class HomeViewModel extends BaseViewModel {
       problem = SearchProblem.notSavedOffline;
     } on ApiException catch (e) {
       outcome = null;
-      problem = e.failure == ApiFailure.badRequest ? SearchProblem.rejected : SearchProblem.server;
+      problem = switch (e.failure) {
+        // "Too busy" is neither the rider's fault nor a broken server, and unlike a
+        // rejected request, trying again shortly does work.
+        ApiFailure.tooBusy => SearchProblem.busy,
+        ApiFailure.badRequest => SearchProblem.rejected,
+        _ => SearchProblem.server,
+      };
       problemDetail = '${e.message} (${e.code})';
     } catch (e) {
       outcome = null;

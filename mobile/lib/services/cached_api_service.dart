@@ -76,9 +76,21 @@ class CachedApiService {
       unawaited(_flushPending());
       return Cached(parsed, fromCache: false, fetchedAt: DateTime.now());
     } on ApiException catch (e) {
-      if (e.failure != ApiFailure.offline) rethrow;
-      _connectivity.reportOffline(timedOut: e.timedOut);
+      // A saved copy beats an error whatever went wrong. This used to rethrow on anything
+      // but "offline", so a 500 or a rate-limit threw a rider's own timetable away while
+      // it sat on their phone - and the screen reported a fault rather than serving it.
+      //
+      // Only a genuine offline marks the app offline; a server that is up but unhappy is
+      // not a statement about the rider's connection.
+      final recoverable = e.failure == ApiFailure.offline
+          || e.failure == ApiFailure.server
+          || e.failure == ApiFailure.tooBusy;
+      if (!recoverable) rethrow;
+      if (e.failure == ApiFailure.offline) _connectivity.reportOffline(timedOut: e.timedOut);
       final hit = await _read(key);
+      // Nothing saved: the caller still needs to know WHICH thing went wrong, so the
+      // original error goes on rather than being flattened into "not available offline".
+      if (hit == null && e.failure != ApiFailure.offline) rethrow;
       if (hit == null) throw const NotAvailableOffline();
       final json = jsonDecode(hit.body) as Json;
       // A trip answered from the phone is a trip somebody made, and the server never

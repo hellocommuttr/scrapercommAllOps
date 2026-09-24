@@ -750,6 +750,15 @@ class _ProblemView extends StatelessWidget {
       actionLabel: 'Try again',
       onAction: vm.search,
     ),
+    // Not "we couldn't plan that trip": nothing is wrong with what the rider asked for,
+    // and unlike a rejected request this one works on a second go.
+    SearchProblem.busy => EmptyState(
+      icon: Icons.hourglass_empty,
+      title: 'Commuttr is busy right now',
+      message: 'Too many searches at once. Give it a few seconds and try again.',
+      actionLabel: 'Try again',
+      onAction: vm.search,
+    ),
   };
 }
 

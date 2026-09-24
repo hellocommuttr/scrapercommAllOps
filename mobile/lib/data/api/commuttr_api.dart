@@ -15,6 +15,13 @@ enum ApiFailure {
 
   /// The request itself was rejected (4xx): retrying will not help.
   badRequest,
+
+  /// The service asked us to slow down (429). Nothing is wrong with the request or the
+  /// rider's connection, and trying again shortly will work.
+  ///
+  /// This used to fall into [badRequest], whose whole meaning is "retrying will not help",
+  /// so a rate-limited rider was told their stops were the problem and offered no retry.
+  tooBusy,
 }
 
 class ApiException implements Exception {
@@ -110,6 +117,9 @@ class HttpCommuttrApi implements CommuttrApi {
     }
     if (res.statusCode >= 500) {
       throw ApiException(ApiFailure.server, 'Server error', statusCode: res.statusCode);
+    }
+    if (res.statusCode == 429) {
+      throw ApiException(ApiFailure.tooBusy, 'The service is busy.', statusCode: 429);
     }
     if (res.statusCode >= 400) {
       String detail = res.reasonPhrase ?? 'Bad request';
