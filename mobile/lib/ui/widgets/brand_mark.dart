@@ -1,46 +1,37 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
-
-/// Commuttr's mark: a route line between two stops, drawn rather than shipped as an
-/// image so it stays crisp and costs nothing to download.
+/// Commuttr's mark.
+///
+/// Two artworks rather than one: the mark is drawn in black on light backgrounds and in
+/// white on dark ones, with the orange eye constant in both. A single tinted image cannot
+/// do that, because only part of it changes colour.
+///
+/// It was previously drawn with a CustomPainter - a route line between two stops - which
+/// was crisp and free to ship and was not the logo. Fidelity to the brand wins.
 class BrandMark extends StatelessWidget {
-  const BrandMark({super.key, this.size = 48});
+  const BrandMark({super.key, this.size = 48, this.onDark});
 
   final double size;
 
-  @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'Commuttr',
-    image: true,
-    child: Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: Brand.orangeDeep, borderRadius: BorderRadius.circular(size * 0.28)),
-      child: CustomPaint(painter: _RoutePainter()),
-    ),
-  );
-}
+  /// Force a variant. Left null, it follows the theme, which is what almost every caller
+  /// wants; pass it where the mark sits on a surface that is not the theme's own, such as
+  /// the always-dark splash.
+  final bool? onDark;
 
-class _RoutePainter extends CustomPainter {
   @override
-  void paint(Canvas canvas, Size s) {
-    final line = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = s.width * 0.08
-      ..strokeCap = StrokeCap.round;
-    final a = Offset(s.width * 0.28, s.height * 0.70);
-    final b = Offset(s.width * 0.72, s.height * 0.30);
-    final path = Path()
-      ..moveTo(a.dx, a.dy)
-      ..cubicTo(s.width * 0.62, s.height * 0.72, s.width * 0.38, s.height * 0.28, b.dx, b.dy);
-    canvas.drawPath(path, line);
-    final dot = Paint()..color = Colors.white;
-    canvas.drawCircle(a, s.width * 0.09, dot);
-    canvas.drawCircle(b, s.width * 0.09, line..style = PaintingStyle.stroke);
+  Widget build(BuildContext context) {
+    final dark = onDark ?? Theme.of(context).brightness == Brightness.dark;
+    return Semantics(
+      label: 'Commuttr',
+      image: true,
+      child: Image.asset(
+        dark ? 'assets/images/logo_dark.png' : 'assets/images/logo_light.png',
+        width: size,
+        height: size,
+        // The artwork is 512px square, so it is sharp at every size the app asks for and
+        // does not need a resolution-aware variant set.
+        filterQuality: FilterQuality.medium,
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

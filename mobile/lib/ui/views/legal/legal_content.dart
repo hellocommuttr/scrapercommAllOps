@@ -16,7 +16,7 @@ enum LegalKind {
   final String title;
 }
 
-const legalLastUpdated = '19 September 2026';
+const legalLastUpdated = '24 September 2026';
 
 /// A numbered, collapsible part of a legal document. Each paragraph is shown as-is;
 /// paragraphs starting with "• " are list items, and a paragraph containing the support
@@ -47,7 +47,8 @@ const _terms = LegalDocument(
   intro: 'Please read these terms carefully before using Commuttr.',
   sections: [
     LegalSection('Acceptance of Terms', [
-      'Commuttr is operated by Commuttr Holdings (Pty) Ltd, a company registered in the Republic of South Africa. '
+      'Commuttr is operated by Commuttr Holdings (Pty) Ltd (registration number 2026/442570/07), a company '
+          'registered in the Republic of South Africa. '
           'In these terms, "Commuttr", "we", "us" and "our" mean Commuttr Holdings (Pty) Ltd, and "you" means the '
           'person using the app or the website.',
       'These terms apply whenever you use Commuttr. By using it, you agree to them. If you do not agree, please do '
@@ -197,12 +198,21 @@ const _privacy = LegalDocument(
           'Regulator of South Africa (inforegulator.org.za).',
     ]),
     LegalSection('Contact Us', [
-      // BEFORE RELEASE: fill in the Information Officer's name and the registered address
-      // below. Under POPIA the head of a private body is the Information Officer by
-      // default, and the Regulator expects a name and an address, not only an email.
-      'Commuttr Holdings (Pty) Ltd',
-      'Information Officer: [NAME TO BE CONFIRMED]',
-      'Registered address: [ADDRESS TO BE CONFIRMED]',
+      // From the CIPC registration. Under POPIA the Information Officer of a private body
+      // is its HEAD - for a company, the chief executive or equivalent, or whoever is
+      // acting as such - not simply any director. Commuttr Holdings has more than one, so
+      // this names the person who holds that role rather than a default.
+      //
+      // The Act also separates holding the office from acting in it: the officer must be
+      // registered with the Information Regulator before taking up the duties. Where the
+      // board would rather put it beyond doubt, a resolution designating the Information
+      // Officer is cleaner than relying on who is treated as the head.
+      //
+      // The director's ID number appears on the CIPC certificate and is deliberately NOT
+      // here: a privacy policy is the last place to publish somebody's identity number.
+      'Commuttr Holdings (Pty) Ltd (registration number 2026/442570/07)',
+      'Information Officer: Mukhethwa Ravele',
+      'Registered address: La Clare, Buhrein Estate, Cape Town, Western Cape, 7570',
       'Email: $_email',
       'For privacy questions, or to ask what we hold about you, to have it corrected or deleted, or to object to '
           'how it is processed, write to our Information Officer at the address above. We will respond within a '

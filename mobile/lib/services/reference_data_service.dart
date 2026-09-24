@@ -316,7 +316,19 @@ class ReferenceDataService {
 
   /// The timetable in force on [date] for a route number, preferring the regular
   /// (non-holiday) PDF. Falls back to the newest one we know of.
-  Future<TimetableInfo?> currentTimetable(String timetableNumber, ServiceDate date) async {
+  /// The timetable a rider should be shown for [timetableNumber] on [date].
+  ///
+  /// [publicHoliday] says which SHEET the journey came from, which is not the same
+  /// question as what day it is. A route can publish a separate public holiday sheet with
+  /// its own times, and this used to prefer the ordinary one outright - so on a public
+  /// holiday the app offered a rider the 22:00 holiday bus and then opened a PDF that has
+  /// no 22:00 in it, because that departure exists only on the holiday sheet. They
+  /// reasonably concluded the app had made the time up.
+  Future<TimetableInfo?> currentTimetable(
+    String timetableNumber,
+    ServiceDate date, {
+    bool publicHoliday = false,
+  }) async {
     // Train timetables are unnumbered: an empty number would match every one of them.
     if (timetableNumber.isEmpty) return null;
     final rows =
@@ -329,7 +341,9 @@ class ReferenceDataService {
     bool inForce(TimetableInfo t) =>
         (t.effectiveFrom == null || t.effectiveFrom!.compareTo(date.iso) <= 0) &&
         (t.effectiveTo == null || t.effectiveTo!.compareTo(date.iso) >= 0);
-    return infos.where((t) => inForce(t) && !t.isPublicHoliday).firstOrNull ??
+    // The sheet the journey actually came from first; then any sheet in force; then
+    // whatever we hold, so a rider is never left with no timetable at all.
+    return infos.where((t) => inForce(t) && t.isPublicHoliday == publicHoliday).firstOrNull ??
         infos.where(inForce).firstOrNull ??
         infos.first;
   }

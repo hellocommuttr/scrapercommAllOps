@@ -558,18 +558,47 @@ String routeShortName(String timetableNumber, String routeLabel, OperatorRef ope
   return trimmed.isEmpty ? timetableNumber : trimmed;
 }
 
+/// A stop nearer the rider than the one they are being sent to, which nothing useful runs
+/// from. The planner returns one per operator that passed one over.
+///
+/// It exists so the screen can answer "why not the stop at the end of my road?" - a rider
+/// who typed Woodstock and was sent to Esplanade has no way to tell a good reason from a
+/// broken app, and will assume the second.
+class NearerStop {
+  const NearerStop({required this.operator, required this.stopName, required this.metres});
+
+  factory NearerStop.fromJson(Json j) => NearerStop(
+    operator: '${j['operator'] ?? ''}',
+    stopName: '${j['stop_name'] ?? ''}',
+    metres: _i(j['metres']) ?? 0,
+  );
+
+  final String operator;
+  final String stopName;
+  final int metres;
+}
+
 class PlanResponse {
-  const PlanResponse({required this.from, required this.to, required this.options});
+  const PlanResponse({
+    required this.from,
+    required this.to,
+    required this.options,
+    this.nearerStops = const [],
+  });
 
   factory PlanResponse.fromJson(Json j) => PlanResponse(
     from: j['from'] as Json?,
     to: j['to'] as Json?,
     options: _list(j['options']).map(PlanOption.fromJson).toList(),
+    nearerStops: _list(j['nearer_stops']).map(NearerStop.fromJson).toList(),
   );
 
   final Json? from;
   final Json? to;
   final List<PlanOption> options;
+
+  /// Empty in the ordinary case, where the rider is boarding at their closest stop.
+  final List<NearerStop> nearerStops;
 }
 
 // ---------------------------------------------------------------- /api/trip_stops

@@ -58,6 +58,10 @@ class TripDetailViewModel extends BaseViewModel {
   late String routeLabel;
   late String timetableNumber;
   late String dayLabel;
+
+  /// The day type of the JOURNEY, as the API names it. Kept because which timetable sheet
+  /// to open follows the journey, not the calendar - see currentTimetable.
+  String dayTypeApi = '';
   late Endpoint from;
   late Endpoint to;
   late ServiceDate date;
@@ -110,6 +114,7 @@ class TripDetailViewModel extends BaseViewModel {
       routeLabel = r.option.routeLabel;
       timetableNumber = r.option.timetableNumber;
       dayLabel = r.option.dayLabel;
+      dayTypeApi = r.option.dayType;
       from = r.from;
       to = r.to;
       date = r.date;
@@ -141,7 +146,13 @@ class TripDetailViewModel extends BaseViewModel {
       }
       _fromPlanned(j);
     }
-    timetable = await _ref.currentTimetable(timetableNumber, date);
+    // Which sheet this journey came from, not which day it happens to be: a public
+    // holiday option must open the public holiday PDF or its times are not in it.
+    timetable = await _ref.currentTimetable(
+      timetableNumber,
+      date,
+      publicHoliday: DayType.fromApi(dayTypeApi) == DayType.publicHoliday,
+    );
     legend = await _ref.notesFor(timetableNumber);
     await _loadTrip();
     await _loadWholeTrip();
@@ -165,6 +176,7 @@ class TripDetailViewModel extends BaseViewModel {
     operator = j.operator;
     fare = j.cashFareCents == null ? null : Fare(cashCents: j.cashFareCents);
     dayLabel = row.dayLabel;
+    dayTypeApi = row.dayType;
     from = j.from;
     to = j.to;
     date = j.date;

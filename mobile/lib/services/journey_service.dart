@@ -206,6 +206,7 @@ class JourneySearchOutcome {
     this.allDayConnections = const [],
     this.hasAnyDirectService = true,
     this.searchIncomplete = false,
+    this.nearerStops = const [],
     this.hiddenByOperator = 0,
   });
 
@@ -251,6 +252,10 @@ class JourneySearchOutcome {
   /// and the screen has to say which. Claiming a journey does not exist on the strength of
   /// a search that never completed is the one thing a journey planner must not do.
   final bool searchIncomplete;
+
+  /// Stops nearer the rider than the ones they are being sent to, which nothing useful
+  /// runs from - one per operator that passed one over. Empty in the ordinary case.
+  final List<NearerStop> nearerStops;
 
   /// Route options left out because their operator is switched off in Filters.
   final int hiddenByOperator;
@@ -355,6 +360,7 @@ class JourneySearchOutcome {
     hasAnyDirectService: hasAnyDirectService,
     hiddenByOperator: hiddenByOperator,
     searchIncomplete: searchIncomplete,
+    nearerStops: nearerStops,
   );
 }
 
@@ -785,6 +791,7 @@ class JourneyService {
       otherDayTypes: otherDayTypes,
       hasAnyDirectService: allowed.isNotEmpty,
       hiddenByOperator: response.options.length - allowed.length,
+      nearerStops: response.nearerStops,
     );
   }
 }

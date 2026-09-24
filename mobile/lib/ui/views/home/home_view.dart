@@ -84,7 +84,30 @@ class HomeView extends StackedView<HomeViewModel> {
             ..._banners(vm, o).expand((w) => [w, const SizedBox(height: 8)]),
             for (final r in rides) ...[
               RideCard(ride: r, minutesUntil: vm.minutesUntil(r), onTap: () => vm.openRide(r)),
-              const SizedBox(height: 10),
+              // Why this ride starts somewhere other than the stop at the end of the
+              // rider's road. Without it, being sent past a nearer stop looks like a
+              // fault - a rider who typed Woodstock and was sent to Esplanade cannot tell
+              // a good reason from a broken app, and will assume the second.
+              if (_passedOver(o, r) case final skipped?)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, right: 4, bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, size: 14, color: context.colors.muted),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '${titleCase(skipped.stopName)} is closer (${_walk(skipped.metres)}) '
+                          'but nothing from there reaches your destination.',
+                          style: TextStyle(color: context.colors.muted, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                const SizedBox(height: 10),
             ],
             if (more > 0)
               _MoreButton(
@@ -132,6 +155,21 @@ class HomeView extends StackedView<HomeViewModel> {
     }
     return out;
   }
+
+  /// The nearer stop this ride's operator passed over, if the ride is the first one shown
+  /// for that operator. Said once per operator, not once per card.
+  static NearerStop? _passedOver(JourneySearchOutcome o, Ride r) {
+    if (o.nearerStops.isEmpty) return null;
+    final first = o.rides.firstWhere((x) => x.operator.code == r.operator.code, orElse: () => r);
+    if (!identical(first, r)) return null;
+    for (final n in o.nearerStops) {
+      if (n.operator == r.operator.code) return n;
+    }
+    return null;
+  }
+
+  static String _walk(int metres) =>
+      metres < 1000 ? '$metres m' : '${(metres / 1000).toStringAsFixed(1)} km';
 
   List<Widget> _emptyStates(HomeViewModel vm, JourneySearchOutcome o) {
     if (o.rides.isNotEmpty) return const [];

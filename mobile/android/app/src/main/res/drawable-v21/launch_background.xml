@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- The launch screen every modern device actually uses: drawable-v21 wins over drawable/
+     on API 21+. Night mode is a higher-precedence qualifier than version, so on a device
+     in dark mode drawable-night/launch_background.xml wins over this one and draws the
+     white mark on black instead.
+
+     ?android:colorBackground follows the platform theme, so the ground is already right;
+     this only had to stop being a blank screen. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
+    <item>
         <bitmap
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+            android:src="@drawable/splash_mark_light" />
+    </item>
 </layer-list>
