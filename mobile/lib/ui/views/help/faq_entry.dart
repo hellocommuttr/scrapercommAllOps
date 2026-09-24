@@ -31,8 +31,8 @@ class HelpTopic {
 const helpTopics = [
   HelpTopic('Using Commuttr', 'Get started and learn the basics', Icons.phone_iphone_outlined),
   HelpTopic('Routes & Planning', 'Find routes, plan and explore', Icons.alt_route_outlined),
-  HelpTopic('Payments & Wallet', 'Top up, payments and refunds', Icons.account_balance_wallet_outlined),
-  HelpTopic('Account & Profile', 'Manage your account and preferences', Icons.person_outline),
+  HelpTopic('Payments & Wallet', 'Fares, tickets and why Commuttr is free', Icons.account_balance_wallet_outlined),
+  HelpTopic('Account & Profile', 'Your details, saved trips and settings', Icons.person_outline),
   HelpTopic('Alerts & Updates', 'Notifications and service updates', Icons.notifications_none_outlined),
   HelpTopic('Accessibility', 'Features to support everyone', Icons.accessibility_new_outlined),
 ];

@@ -112,6 +112,17 @@ class AboutView extends StackedView<AboutViewModel> {
                   ),
                 ],
               ),
+              // The operating name is what riders know; the legal entity belongs here,
+              // once, where somebody looking for it will look. Also what the Play listing
+              // and the Information Regulator expect to match.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                child: Text(
+                  'Commuttr is a product of Commuttr Holdings (Pty) Ltd, Cape Town, South Africa.',
+                  textAlign: TextAlign.center,
+                  style: context.text.bodySmall?.copyWith(color: context.colors.muted),
+                ),
+              ),
             ],
           ),
         ),

@@ -47,8 +47,11 @@ const _terms = LegalDocument(
   intro: 'Please read these terms carefully before using Commuttr.',
   sections: [
     LegalSection('Acceptance of Terms', [
-      'These terms apply when you use the Commuttr app and website. By using Commuttr you agree to them. If you do '
-          'not agree, please do not use Commuttr.',
+      'Commuttr is operated by Commuttr Holdings (Pty) Ltd, a company registered in the Republic of South Africa. '
+          'In these terms, "Commuttr", "we", "us" and "our" mean Commuttr Holdings (Pty) Ltd, and "you" means the '
+          'person using the app or the website.',
+      'These terms apply whenever you use Commuttr. By using it, you agree to them. If you do not agree, please do '
+          'not use Commuttr.',
       'Commuttr is an independent journey planner. It is not affiliated with, endorsed by or operated by Golden '
           'Arrow Bus Services (Pty) Ltd, Metrorail, the Passenger Rail Agency of South Africa (PRASA), MyCiTi or the '
           'City of Cape Town, or any other transport operator. We name Golden Arrow, MyCiTi and Metrorail only to '
@@ -65,7 +68,7 @@ const _terms = LegalDocument(
       'Commuttr shows scheduled times only. It does not track vehicles and does not show delays, cancellations, '
           'breakdowns, route changes or other disruptions. Trip progress is worked out from the timetable and the '
           'clock. Some times are estimated between published stops and are marked as such.',
-      'Please check with the operator, Golden Arrow at gabs.co.za, MyCiTi at www.myciti.org.za or Metrorail at '
+      'Please check with the operator, Golden Arrow at gabs.co.za, MyCiTi at myciti.org.za or Metrorail at '
           'metrorail.co.za, before you '
           'rely on a time or a fare, and allow extra time. You are responsible for your own travel decisions and '
           'your own safety.',
@@ -91,11 +94,11 @@ const _terms = LegalDocument(
           'figures, shown with the date they took effect. They may be out of date, may depend on the time of day, '
           'and are not a quote or a guarantee of what you will be charged. Where no fare is published, none is shown.',
       'Buy tickets from the operator: Metrorail tickets at the station, Golden Arrow tickets and cards as '
-          'described on gabs.co.za, and MyCiTi myconnect cards as described on www.myciti.org.za. Refunds on tickets and cards are the operator\'s responsibility.',
+          'described on gabs.co.za, and MyCiTi myconnect cards as described on myciti.org.za. Refunds on tickets and cards are the operator\'s responsibility.',
     ]),
     LegalSection('Third-Party Services', [
       'For tickets, lost property, complaints and service information, contact the operator directly: Golden Arrow '
-          'through gabs.co.za, MyCiTi through www.myciti.org.za, or Metrorail through metrorail.co.za. We cannot act for them or pass complaints on.',
+          'through gabs.co.za, MyCiTi through myciti.org.za, or Metrorail through metrorail.co.za. We cannot act for them or pass complaints on.',
       'Maps and place-name search use OpenStreetMap services. Map data © OpenStreetMap contributors.',
       'Links to operator websites, your email app and your phone dialler open services we do not run. Their own '
           'terms and privacy policies apply there.',
@@ -122,8 +125,9 @@ const _privacy = LegalDocument(
   intro: 'Your privacy is important to us. This policy explains how we collect, use and protect your information.',
   sections: [
     LegalSection('Information We Collect', [
-      'Commuttr has no accounts and is built to need as little of your information as possible, in line with the '
-          'Protection of Personal Information Act (POPIA). We process only:',
+      'Commuttr Holdings (Pty) Ltd is the responsible party for the personal information described in this policy, '
+          'as that term is used in the Protection of Personal Information Act, 2013 (POPIA).',
+      'Commuttr has no accounts and is built to need as little of your information as possible. We process only:',
       '• Trip searches: the stops or map points you plan between, and the travel date and time, sent to the '
           'Commuttr server to work out your trip.',
       '• Place searches: the text you type to find a place by name, sent to the Commuttr server.',
@@ -166,7 +170,8 @@ const _privacy = LegalDocument(
           'counted by our own server, and by nobody else.',
       '• We may share aggregate counts with Golden Arrow, Metrorail, PRASA, MyCiTi, the City of Cape Town and '
           'others. We do not share your searches, your reports or anything about you individually with them.',
-      '• We will disclose information only if the law requires us to.',
+      '• We disclose information to anyone else only where the law obliges us to, and only as much as the law '
+          'obliges us to disclose.',
     ]),
     LegalSection('Data Security', [
       // OPERATOR TO CONFIRM: the 90-day retention below must be confirmed by whoever
@@ -192,11 +197,18 @@ const _privacy = LegalDocument(
           'Regulator of South Africa (inforegulator.org.za).',
     ]),
     LegalSection('Contact Us', [
-      // CONFIRM BEFORE RELEASE: the Information Officer's name and address, and that
-      // AppConfig.supportEmail is the right contact for POPIA requests.
-      'For privacy questions or to exercise your rights, contact our Information Officer at $_email.',
-      'If we change what we collect or how we use it, we will update this policy and the date at the top. '
-          'Significant changes will also be announced in the app.',
+      // BEFORE RELEASE: fill in the Information Officer's name and the registered address
+      // below. Under POPIA the head of a private body is the Information Officer by
+      // default, and the Regulator expects a name and an address, not only an email.
+      'Commuttr Holdings (Pty) Ltd',
+      'Information Officer: [NAME TO BE CONFIRMED]',
+      'Registered address: [ADDRESS TO BE CONFIRMED]',
+      'Email: $_email',
+      'For privacy questions, or to ask what we hold about you, to have it corrected or deleted, or to object to '
+          'how it is processed, write to our Information Officer at the address above. We will respond within a '
+          'reasonable time, and in any event as POPIA requires.',
+      'If we change what we collect or how we use it, we will update this policy and the date at the top. We will '
+          'also announce significant changes in the app.',
     ]),
   ],
   footer: 'By using Commuttr, you agree to this Privacy Policy.',
