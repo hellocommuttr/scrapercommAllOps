@@ -205,6 +205,7 @@ class JourneySearchOutcome {
     this.connections = const [],
     this.allDayConnections = const [],
     this.hasAnyDirectService = true,
+    this.searchIncomplete = false,
     this.hiddenByOperator = 0,
   });
 
@@ -243,6 +244,13 @@ class JourneySearchOutcome {
 
   /// Some allowed bus or train connects these points on some day.
   final bool hasAnyDirectService;
+
+  /// The search for a journey with a change was cut short rather than finished.
+  ///
+  /// An empty list then means "we could not check", not "there is no way to get there",
+  /// and the screen has to say which. Claiming a journey does not exist on the strength of
+  /// a search that never completed is the one thing a journey planner must not do.
+  final bool searchIncomplete;
 
   /// Route options left out because their operator is switched off in Filters.
   final int hiddenByOperator;
@@ -308,6 +316,7 @@ class JourneySearchOutcome {
     List<Connection> connections, {
     List<Connection> allDayConnections = const [],
     List<DayType>? otherDayTypes,
+    bool searchIncomplete = false,
   }) => JourneySearchOutcome(
     from: from,
     to: to,
@@ -325,6 +334,7 @@ class JourneySearchOutcome {
     allDayConnections: allDayConnections,
     hasAnyDirectService: hasAnyDirectService,
     hiddenByOperator: hiddenByOperator,
+    searchIncomplete: searchIncomplete,
   );
 }
 
@@ -557,6 +567,8 @@ class JourneyService {
         // With a direct service the day types already come from its own timetable.
         // Never the days we just searched: offering the rider a day they are already on
         // is what produced "no Sunday service ... runs on: Public holiday" on a holiday.
+        // Carried through so the screen can tell "nothing runs" from "we did not finish".
+        searchIncomplete: c.data.searchIncomplete,
         otherDayTypes: !outcome.hasAnyDirectService && forDay.isEmpty
             ? allowed
                   .map((x) => DayType.fromApi(x.dayType))

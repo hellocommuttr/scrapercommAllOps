@@ -808,15 +808,30 @@ class Connection {
 }
 
 class ConnectionsResponse {
-  const ConnectionsResponse({this.legsRequired, required this.connections});
+  const ConnectionsResponse({
+    this.legsRequired,
+    required this.connections,
+    this.searchIncomplete = false,
+  });
 
   factory ConnectionsResponse.fromJson(Json j) => ConnectionsResponse(
     legsRequired: _i(j['legs_required']),
     connections: _list(j['connections']).map(Connection.fromJson).toList(),
+    searchIncomplete: j['search_incomplete'] == true,
   );
 
   final int? legsRequired;
   final List<Connection> connections;
+
+  /// The search was cut short rather than finished, so an empty list here is not the same
+  /// as "there is no way to make this journey".
+  ///
+  /// The dense parts of the network can take longer to search than the API will wait. When
+  /// that happens the rider used to be told no journey exists, which is a claim nobody had
+  /// established - CAPE TOWN to BELLVILLE was shown as impossible for a while on exactly
+  /// this path. The app must never say a journey does not exist on the strength of a
+  /// search that did not finish.
+  final bool searchIncomplete;
 }
 
 // ---------------------------------------------------------------- catalogue

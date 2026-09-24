@@ -181,6 +181,23 @@ class HomeView extends StackedView<HomeViewModel> {
         ),
       ];
     }
+    // Nothing was found - but "nothing runs" and "we did not finish looking" are different
+    // answers and only one of them is a fact about Cape Town. Where the network is dense
+    // the search can be cut short on time, and saying "no bus or train connects these two"
+    // on the strength of that is a claim nobody established. CAPE TOWN to BELLVILLE was
+    // shown as impossible for a while on exactly this path.
+    if (o.searchIncomplete) {
+      return [
+        EmptyState(
+          icon: Icons.hourglass_empty,
+          title: 'We could not finish checking this journey',
+          message: 'This is a busy part of the network and the search timed out. '
+              'It does not mean there is no way to get there.',
+          actionLabel: 'Try again',
+          onAction: vm.search,
+        ),
+      ];
+    }
     return [
       EmptyState(
         icon: Icons.wrong_location_outlined,
