@@ -137,14 +137,25 @@ class HomeView extends StackedView<HomeViewModel> {
     if (o.rides.isNotEmpty) return const [];
     final today = const SastClock().today;
     if (o.allDay.isNotEmpty) {
+      // "No more trains today" names the vehicles we FOUND, and reads as the vehicles the
+      // rider ASKED FOR. With no filter on, someone who searched for any way to get there
+      // is told about trains and left wondering whether the buses were looked at at all.
+      //
+      // So the heading no longer claims what they searched for, and where only one kind
+      // runs and nothing was filtered out, the answer to "what about the buses?" is said
+      // rather than left to be inferred.
+      final oneKind = o.kinds.length == 1 && o.hiddenByOperator == 0;
+      final when = o.date == today ? 'today' : 'that day';
+      final only = oneKind ? 'Only ${o.vehicles} run between these two $when. ' : '';
       return [
         EmptyState(
           icon: Icons.bedtime_outlined,
-          title: 'No more ${o.vehicles} ${o.date == today ? 'today' : 'that day'}',
+          title: 'No more departures $when',
           message: o.allDay.length == 1
-              ? 'The only ${o.vehicle} that day departs at ${o.firstBus!.boardTime}.'
-              : 'The last ${o.vehicle} departed at ${o.lastBus!.boardTime}. The first is at ${o.firstBus!.boardTime}.',
-          actionLabel: o.date == today ? 'See tomorrow\'s ${o.vehicles}' : 'See the whole day',
+              ? '${only}The only ${o.vehicle} $when departs at ${o.firstBus!.boardTime}.'
+              : '${only}The last ${o.vehicle} departed at ${o.lastBus!.boardTime}. '
+                    'The first is at ${o.firstBus!.boardTime}.',
+          actionLabel: o.date == today ? 'See tomorrow' : 'See the whole day',
           onAction: o.date == today ? vm.seeTomorrow : vm.seeFullDay,
         ),
       ];
