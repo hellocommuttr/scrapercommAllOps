@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
 
-enum LocationProblem { serviceOff, denied, deniedForever, unavailable }
+enum LocationProblem { serviceOff, denied, deniedForever, unavailable, insecureOrigin }
 
 class LocationResult {
   const LocationResult.ok(double this.lat, double this.lon) : problem = null;
@@ -18,6 +19,9 @@ class LocationResult {
     LocationProblem.deniedForever =>
       'Location permission is blocked. You can allow it in your phone settings, or pick your stop from the list.',
     LocationProblem.unavailable => "We couldn't get your location. Pick your stop from the list instead.",
+    LocationProblem.insecureOrigin =>
+      'Browsers only share your location over a secure (https) connection. Open Commuttr over https, or pick '
+          'your stop from the list.',
     null => '',
   };
 }
@@ -27,6 +31,16 @@ class LocationResult {
 class LocationService {
   Future<LocationResult> current() async {
     try {
+      // On the web a browser refuses location outright unless the page came over https
+      // (localhost excepted), and it refuses it as PERMISSION_DENIED - indistinguishable
+      // from the rider having said no. That sent them to "pick your stop from the list",
+      // which is useless advice when the fix is the address bar. Said plainly instead.
+      //
+      // navigator.geolocation still EXISTS on an insecure origin, so nothing before the
+      // call reveals this; only the error does, and by then it looks like a refusal.
+      if (kIsWeb && Uri.base.scheme == 'http' && !_localhost(Uri.base.host)) {
+        return const LocationResult.failed(LocationProblem.insecureOrigin);
+      }
       if (!await Geolocator.isLocationServiceEnabled()) return const LocationResult.failed(LocationProblem.serviceOff);
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
@@ -48,6 +62,10 @@ class LocationService {
       return const LocationResult.failed(LocationProblem.unavailable);
     }
   }
+
+  /// Browsers treat localhost as secure however it is served, so testing at
+  /// http://localhost works and only a LAN address or a real http host is refused.
+  static bool _localhost(String host) => host == 'localhost' || host == '127.0.0.1' || host == '::1';
 
   Future<void> openSettings() => Geolocator.openAppSettings();
 }
