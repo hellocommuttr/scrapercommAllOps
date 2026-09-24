@@ -135,31 +135,41 @@ class HomeView extends StackedView<HomeViewModel> {
 
   List<Widget> _emptyStates(HomeViewModel vm, JourneySearchOutcome o) {
     if (o.rides.isNotEmpty) return const [];
+    // Journeys with a change are on screen directly below this. Saying anything here while
+    // they are showing is contradicting them; the guard used to sit further down, after
+    // the branches that fire first, so it never got the chance.
+    if (o.connections.isNotEmpty) return const [];
     final today = const SastClock().today;
-    if (o.allDay.isNotEmpty) {
-      // "No more trains today" names the vehicles we FOUND, and reads as the vehicles the
-      // rider ASKED FOR. With no filter on, someone who searched for any way to get there
-      // is told about trains and left wondering whether the buses were looked at at all.
+    if (o.ranAtAll) {
+      // "No more trains today" named the vehicles we FOUND and read as the ones the rider
+      // ASKED FOR, and it counted only the DIRECT trips - so a rider whose journey needs a
+      // change was told the day was over while dozens of ways to make it sat unmentioned.
       //
-      // So the heading no longer claims what they searched for, and where only one kind
-      // runs and nothing was filtered out, the answer to "what about the buses?" is said
-      // rather than left to be inferred.
+      // The heading no longer claims what they searched for, the times cover trips with a
+      // change as well, and where only one kind runs and nothing was filtered out, the
+      // answer to "what about the buses?" is said rather than left to be inferred.
       final oneKind = o.kinds.length == 1 && o.hiddenByOperator == 0;
       final when = o.date == today ? 'today' : 'that day';
       final only = oneKind ? 'Only ${o.vehicles} run between these two $when. ' : '';
+      final range = o.dayRange;
+      final withChange = o.allDayConnections.isNotEmpty && o.allDay.isEmpty
+          ? 'Every way to make this journey $when needs a change. '
+          : '';
       return [
         EmptyState(
           icon: Icons.bedtime_outlined,
           title: 'No more departures $when',
-          message: o.allDay.length == 1
-              ? '${only}The only ${o.vehicle} $when departs at ${o.firstBus!.boardTime}.'
-              : '${only}The last ${o.vehicle} departed at ${o.lastBus!.boardTime}. '
-                    'The first is at ${o.firstBus!.boardTime}.',
+          message: range == null
+              ? '$only$withChange'
+              : range.$1 == range.$2
+              ? '$only${withChange}The only departure $when was at ${range.$1}.'
+              : '$only${withChange}The last departed at ${range.$2}. The first is at ${range.$1}.',
           actionLabel: o.date == today ? 'See tomorrow' : 'See the whole day',
           onAction: o.date == today ? vm.seeTomorrow : vm.seeFullDay,
         ),
       ];
     }
+
     if (o.otherDayTypes.isNotEmpty) {
       return [
         EmptyState(

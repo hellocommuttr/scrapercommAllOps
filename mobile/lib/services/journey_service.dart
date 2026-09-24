@@ -308,6 +308,26 @@ class JourneySearchOutcome {
   Ride? get firstBus => allDay.isEmpty ? null : allDay.first;
   Ride? get lastBus => allDay.isEmpty ? null : allDay.last;
 
+  /// The first and last departure of the day counting trips WITH A CHANGE as well as
+  /// direct ones, as "HH:MM", or null if nothing ran.
+  ///
+  /// "The last train departed at 16:00" was computed from the direct rides alone, so a
+  /// rider whose journey needs a change was told the day was over while 62 ways to make it
+  /// sat in allDayConnections, unmentioned. The sentence has to describe everything that
+  /// ran, or it is not describing their day.
+  (String, String)? get dayRange {
+    final times = <double>[
+      for (final r in allDay) r.boardMinutes,
+      for (final c in allDayConnections)
+        if (c.legs.first.boardMinutes != null) c.legs.first.boardMinutes!.toDouble(),
+    ]..sort();
+    if (times.isEmpty) return null;
+    return (formatMinutes(times.first), formatMinutes(times.last));
+  }
+
+  /// Anything at all ran that day, direct or with a change.
+  bool get ranAtAll => allDay.isNotEmpty || allDayConnections.isNotEmpty;
+
   bool get isStale => DateTime.now().difference(fetchedAt) > const Duration(days: 7);
 
   /// The same outcome with the trips that need a change added, leaving the direct rides
